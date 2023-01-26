@@ -1,0 +1,8 @@
+html.parser
+bs4
+os
+selenium
+time
+datetime
+tkinter
+webdriver-manager
