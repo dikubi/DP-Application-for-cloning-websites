@@ -25,9 +25,22 @@ def save_to_file(file, input_to_file):
     file.write(input_to_file)
 
 
-#def scrape_style_files():
+def scrape_css_files():
+    file = open("css_files.txt", "r")
+    for line in file:
+        print("uložený odkaz: " + line) #pro kontrolu, potom smazat
+        driver.get(line) 
+        time.sleep(5)
 
+        html = driver.page_source 
+        soup = BeautifulSoup(html, "html5lib")
 
+        pre = soup.find("pre")
+        result = pre.text
+
+        file_css_style = create_file()
+        save_to_file(file_css_style, result)
+        close_file(file_css_style)
 
 
 def get_html_tree():
@@ -66,10 +79,15 @@ def get_html_tree():
         # if the link tag has the 'href' attribute
             url = css.attrs.get("href")
             contains_scheme = url.startswith("http")
-            if contains_scheme == True:
-                cs_files.append(url)
-            else:    
-                cs_files.append(base_url+url)
+            if (url.__contains__("css")):
+                print("bude uloženo:  " + url) #pro kontrolu, potom smazat
+                if contains_scheme == True:
+                    cs_files.append(url)
+                else:    
+                    cs_files.append(base_url+url)
+            else:
+                print("nebude uloženo:  " + url) #pro kontrolu, potom smazat
+
 
     print(f"Total {len(js_files)} javascript files found")
     print(f"Total {len(cs_files)} CSS files found")
@@ -83,7 +101,8 @@ def get_html_tree():
         for css_file in cs_files:
             print(css_file, file=f)
 
-
+    print("scraping css") #pro kontrolu, potom smazat
+    scrape_css_files()
 
 
 get_html_tree()
