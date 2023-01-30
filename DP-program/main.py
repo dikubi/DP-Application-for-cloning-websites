@@ -8,6 +8,7 @@ import time
 import webbrowser
 from selenium.webdriver.chrome.options import Options
 from urllib.parse import urlparse
+import os
 
 
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
@@ -21,10 +22,19 @@ def create_file():
     file = open(file_name, "w", encoding="utf-8")
     return file
 
+def create_file_css(original_path): #original_path je adresa css stylu, která byla získána z vložené stránky
+    parse_url = urlparse(original_path)
+    just_path = parse_url.path  #vrátí cestu k souboru, bez https atd.
+    head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a název souboru
+    file_name =  head_tail[1]  #vrátí jen název souboru
+    print("head je: " + file_name)  #pro kontrolu, potom smazat
+    file = open(file_name, "w", encoding="utf-8")
+    return file
+
 def save_to_file(file, input_to_file):
     file.write(input_to_file)
 
-
+#funkce, která projde odkazy na css styly v html dokumentu a vytáhne z nich css kód 
 def scrape_css_files():
     file = open("css_files.txt", "r")
     for line in file:
@@ -36,10 +46,10 @@ def scrape_css_files():
         soup = BeautifulSoup(html, "html5lib")
 
         pre = soup.find("pre")
-        result = pre.text
+        scraped_code = pre.text
 
-        file_css_style = create_file()
-        save_to_file(file_css_style, result)
+        file_css_style = create_file_css(line) #line je předáno pro vytvoření správného názvu souboru
+        save_to_file(file_css_style, scraped_code)
         close_file(file_css_style)
 
 
