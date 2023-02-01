@@ -22,7 +22,7 @@ def create_file():
     file = open(file_name, "w", encoding="utf-8")
     return file
 
-def create_file_css(original_path): #original_path je adresa css stylu, která byla získána z vložené stránky
+def create_file_style(original_path): #original_path je adresa css/js stylu, která byla získána z vložené stránky
     parse_url = urlparse(original_path)
     just_path = parse_url.path  #vrátí cestu k souboru, bez https atd.
     head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a název souboru
@@ -34,9 +34,12 @@ def create_file_css(original_path): #original_path je adresa css stylu, která b
 def save_to_file(file, input_to_file):
     file.write(input_to_file)
 
-#funkce, která projde odkazy na css styly v html dokumentu a vytáhne z nich css kód 
-def scrape_css_files():
-    file = open("css_files.txt", "r")
+#
+def scrape_style_files(file_with_urls_found):
+    """Projde odkazy na css/js styly v html dokumentu a vytáhne z nich css kód.
+    Poté zavolá create_file_style, která vytvoří .css / .js souboru pro každý nalezený soubor."""
+
+    file = open(file_with_urls_found, "r")
     for line in file:
         print("uložený odkaz: " + line) #pro kontrolu, potom smazat
         driver.get(line) 
@@ -48,9 +51,9 @@ def scrape_css_files():
         pre = soup.find("pre")
         scraped_code = pre.text
 
-        file_css_style = create_file_css(line) #line je předáno pro vytvoření správného názvu souboru
-        save_to_file(file_css_style, scraped_code)
-        close_file(file_css_style)
+        file_style = create_file_style(line) #line je předáno pro vytvoření správného názvu souboru
+        save_to_file(file_style, scraped_code)
+        close_file(file_style)
 
 
 def get_html_tree():
@@ -99,8 +102,8 @@ def get_html_tree():
                 print("nebude uloženo:  " + url) #pro kontrolu, potom smazat
 
 
-    print(f"Total {len(js_files)} javascript files found")
-    print(f"Total {len(cs_files)} CSS files found")
+    print(f"Total {len(js_files)} javascript files found") #pro kontrolu, potom smazat
+    print(f"Total {len(cs_files)} CSS files found") #pro kontrolu, potom smazat
 
 
     with open("javascript_files.txt", "w") as f:
@@ -112,7 +115,8 @@ def get_html_tree():
             print(css_file, file=f)
 
     print("scraping css") #pro kontrolu, potom smazat
-    scrape_css_files()
+    scrape_style_files("css_files.txt")
+    scrape_style_files("javascript_files.txt")
 
 
 get_html_tree()
