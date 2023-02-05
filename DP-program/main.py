@@ -34,10 +34,10 @@ def create_file_style(original_path): #original_path je adresa css/js stylu, kte
 def save_to_file(file, input_to_file):
     file.write(input_to_file)
 
-#
+
 def scrape_style_files(file_with_urls_found):
-    """Projde odkazy na css/js styly v html dokumentu a vytáhne z nich css kód.
-    Poté zavolá create_file_style, která vytvoří .css / .js souboru pro každý nalezený soubor."""
+    """Projde odkazy na css/js styly v .txt dokumentech a vytáhne z nich css/js kód.
+    Poté zavolá create_file_style, která vytvoří .css / .js souboru pro každý soubor."""
 
     file = open(file_with_urls_found, "r")
     for line in file:
@@ -55,25 +55,17 @@ def scrape_style_files(file_with_urls_found):
         save_to_file(file_style, scraped_code)
         close_file(file_style)
 
+def scrape_images(soup):
+    images = soup.find_all('img')
 
-def get_html_tree():
-    URL_input = input("Vložte URL: ")
-    driver.get(URL_input) 
-    time.sleep(5)
+    for item in images:
+        print("scraping images: ")
+        print(item['src'])
 
-    #odstranění path a parametrů za doménou stránky
-    parse_url = urlparse(URL_input)
-    print(parse_url) #pro kontrolu, potom smazat
-    base_url = parse_url.scheme + "://" + parse_url.netloc
-    print(base_url) #pro kontrolu, potom smazat
 
-    html = driver.page_source 
-    soup = BeautifulSoup(html, "html5lib")
-    #print(soup.prettify())
-    file_html_tree = create_file()
-    save_to_file(file_html_tree, soup.prettify())
-    close_file(file_html_tree)
-
+def find_styles(soup, base_url):
+    """Funkce, která najde v html stránky (soup) všechny odkazy na css a js styly, uloží je do listů 
+    a tyto listy pak uloží do souborů javascript_files.txt a css_files.txt."""
     js_files = []
     cs_files = []
 
@@ -101,11 +93,10 @@ def get_html_tree():
             else:
                 print("nebude uloženo:  " + url) #pro kontrolu, potom smazat
 
-
     print(f"Total {len(js_files)} javascript files found") #pro kontrolu, potom smazat
     print(f"Total {len(cs_files)} CSS files found") #pro kontrolu, potom smazat
-
-
+    
+    #nalezené odkazy, které byly uloženy do listů, se uloží do .txt souborů
     with open("javascript_files.txt", "w") as f:
         for js_file in js_files:
             print(js_file, file=f)
@@ -114,9 +105,32 @@ def get_html_tree():
         for css_file in cs_files:
             print(css_file, file=f)
 
+
+def main():
+    URL_input = input("Vložte URL: ")
+    driver.get(URL_input) 
+    time.sleep(5)
+
+    #odstranění path a parametrů za doménou stránky
+    parse_url = urlparse(URL_input)
+    print(parse_url) #pro kontrolu, potom smazat
+    base_url = parse_url.scheme + "://" + parse_url.netloc
+    print(base_url) #pro kontrolu, potom smazat
+
+    html = driver.page_source 
+    soup = BeautifulSoup(html, "html5lib")
+    
+    file_html_tree = create_file() #uloží získaný html kód do samostatného .html souboru
+    save_to_file(file_html_tree, soup.prettify())
+    close_file(file_html_tree)
+
+    find_styles(soup, base_url)
+
     print("scraping css") #pro kontrolu, potom smazat
     scrape_style_files("css_files.txt")
     scrape_style_files("javascript_files.txt")
+    
+    scrape_images(soup)
 
 
-get_html_tree()
+main()
