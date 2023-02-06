@@ -8,6 +8,7 @@ import time
 import webbrowser
 from selenium.webdriver.chrome.options import Options
 from urllib.parse import urlparse
+import urllib.request
 import os
 
 
@@ -55,17 +56,32 @@ def scrape_style_files(file_with_urls_found):
         save_to_file(file_style, scraped_code)
         close_file(file_style)
 
-def scrape_images(soup):
+def download_images(soup):
+    """Najde tagy img v html, získá jejich url adresu a lokálně je uloží pod jejich
+    původním jménem."""
+
     images = soup.find_all('img')
 
     for item in images:
         print("scraping images: ")
         print(item['src'])
-
+    
+    with open("images.txt", "w") as f:
+        for item in images:
+            parse_url = urlparse(item['src'])
+            just_path = parse_url.path  #vrátí cestu k souboru, bez https atd.
+            head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a název souboru
+            file_name =  head_tail[1]  #vrátí jen název souboru
+            print("head je: " + file_name)  #pro kontrolu, potom smazat
+            print(item['src'], file=f) #uloží odkaz na obrázek do txt souboru
+            print("Downloading image: " + file_name)
+            urllib.request.urlretrieve(item['src'], file_name) #stáhne obrázek
+    
 
 def find_styles(soup, base_url):
-    """Funkce, která najde v html stránky (soup) všechny odkazy na css a js styly, uloží je do listů 
+    """Najde v html stránky (soup) všechny odkazy na css a js styly, uloží je do listů 
     a tyto listy pak uloží do souborů javascript_files.txt a css_files.txt."""
+
     js_files = []
     cs_files = []
 
@@ -129,8 +145,8 @@ def main():
     print("scraping css") #pro kontrolu, potom smazat
     scrape_style_files("css_files.txt")
     scrape_style_files("javascript_files.txt")
-    
-    scrape_images(soup)
+
+    download_images(soup)
 
 
 main()
