@@ -10,6 +10,8 @@ from selenium.webdriver.chrome.options import Options
 from urllib.parse import urlparse
 import urllib.request
 import os
+import re
+from os.path import basename, splitext
 
 
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
@@ -18,8 +20,9 @@ def close_file(file):
     file.close()
 
 def create_file():
-    time_now = time.strftime("%Y%m%d-%H%M%S")
-    file_name = time_now + ".html"
+    #time_now = time.strftime("%Y%m%d-%H%M%S")
+    #file_name = time_now + ".html"
+    file_name = "index.html"
     file = open(file_name, "w", encoding="utf-8")
     return file
 
@@ -50,7 +53,11 @@ def scrape_style_files(file_with_urls_found):
         soup = BeautifulSoup(html, "html5lib")
 
         pre = soup.find("pre")
-        scraped_code = pre.text
+        
+        try:
+            scraped_code = pre.text
+        except AttributeError:
+            print("Soubor: " + line + " je prázdný.")
 
         file_style = create_file_style(line) #line je předáno pro vytvoření správného názvu souboru
         save_to_file(file_style, scraped_code)
@@ -78,13 +85,16 @@ def download_images(soup):
             urllib.request.urlretrieve(item['src'], file_name) #stáhne obrázek
     
 
-def find_styles(soup, base_url):
+def find_styles(base_url): #původně další param soup
     """Najde v html stránky (soup) všechny odkazy na css a js styly, uloží je do listů 
     a tyto listy pak uloží do souborů javascript_files.txt a css_files.txt."""
 
     js_files = []
     cs_files = []
 
+    html = driver.page_source
+    soup = BeautifulSoup(html, "html5lib")
+    
     for script in soup.find_all("script"):
         if script.attrs.get("src"):
         # if the tag has the attribute 'src'
@@ -94,7 +104,20 @@ def find_styles(soup, base_url):
                 js_files.append(url)
             else:
                 js_files.append(base_url+url)
-    
+
+            parse_url = urlparse(url)
+            just_path = parse_url.path  #vrátí cestu k souboru, bez https atd.
+            head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a název souboru
+            new_src =  head_tail[1]  #vrátí jen název souboru
+            
+            script['src'] = new_src
+            html = str(soup)
+
+    #file_html_tree = create_file() 
+    #save_to_file(file_html_tree, soup.prettify()) #uloží získaný html kód do samostatného .html souboru
+    #close_file(file_html_tree)
+            #rewrite_src(url)
+
     for css in soup.find_all("link"):
         if css.attrs.get("href"):
         # if the link tag has the 'href' attribute
@@ -108,6 +131,18 @@ def find_styles(soup, base_url):
                     cs_files.append(base_url+url)
             else:
                 print("nebude uloženo:  " + url) #pro kontrolu, potom smazat
+            
+            parse_url = urlparse(url)
+            just_path = parse_url.path  #vrátí cestu k souboru, bez https atd.
+            head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a název souboru
+            new_src =  head_tail[1]  #vrátí jen název souboru
+
+            css['href'] = new_src
+            html = str(soup)
+
+    file_html_tree = create_file() 
+    save_to_file(file_html_tree, soup.prettify()) #uloží získaný html kód do samostatného .html souboru
+    close_file(file_html_tree)
 
     print(f"Total {len(js_files)} javascript files found") #pro kontrolu, potom smazat
     print(f"Total {len(cs_files)} CSS files found") #pro kontrolu, potom smazat
@@ -135,12 +170,8 @@ def main():
 
     html = driver.page_source 
     soup = BeautifulSoup(html, "html5lib")
-    
-    file_html_tree = create_file() #uloží získaný html kód do samostatného .html souboru
-    save_to_file(file_html_tree, soup.prettify())
-    close_file(file_html_tree)
 
-    find_styles(soup, base_url)
+    find_styles(base_url)
 
     print("scraping css") #pro kontrolu, potom smazat
     scrape_style_files("css_files.txt")
@@ -148,5 +179,5 @@ def main():
 
     download_images(soup)
 
-
+    
 main()
