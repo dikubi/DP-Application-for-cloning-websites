@@ -12,6 +12,9 @@ import urllib.request
 import os
 import re
 from os.path import basename, splitext
+import pathlib
+from urllib.parse import unquote, urlparse
+from pathlib import PurePosixPath
 
 
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
@@ -67,6 +70,7 @@ def scrape_style_files(file_with_urls_found):
             scraped_code = pre.text
         except AttributeError:
             print("Soubor: " + line + " je prázdný.")
+            continue
 
         file_style = create_file_style(line) #line je předáno pro vytvoření správného názvu souboru
         save_to_file(file_style, scraped_code)
@@ -88,7 +92,7 @@ def download_images(soup):
             print("Downloading image: " + file_name)
             urllib.request.urlretrieve(item['src'], file_name) #stáhne obrázek
 
-def find_styles_images(base_url):
+def find_styles_images(base_url, path_url):
     """Najde v html stránky (soup) všechny odkazy na css a js styly a obrázky, 
     uloží je do listů a tyto listy pak uloží do souborů javascript_files.txt,
     css_files.txt, images.txt.
@@ -106,9 +110,14 @@ def find_styles_images(base_url):
         # if the tag has the attribute 'src'
             url = script.attrs.get("src")
             contains_scheme = url.startswith("http")
+            contains_dot = url.startswith(".")
+            if contains_dot == True:
+                url = url[1:]
             if contains_scheme == True:
                 js_files.append(url)
             else:
+                js_files.append(base_url + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
+                js_files.append(base_url + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
                 js_files.append(base_url+url)
 
             new_src = split_path(url)
@@ -123,9 +132,13 @@ def find_styles_images(base_url):
             contains_scheme = url.startswith("http")
             if (url.__contains__("css")):
                 print("bude uloženo:  " + url) #pro kontrolu, potom smazat
+                if contains_dot == True:
+                    url = url[1:]
                 if contains_scheme == True:
                     cs_files.append(url)
                 else:    
+                    js_files.append(base_url + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
+                    js_files.append(base_url + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
                     cs_files.append(base_url+url)
             else:
                 print("nebude uloženo:  " + url) #pro kontrolu, potom smazat
@@ -135,17 +148,18 @@ def find_styles_images(base_url):
             css['href'] = new_src #nahradí původní href jen názvem souboru
             html = str(soup) #uloží upravený kód do soup
 
-    for img in soup.find_all('img'):
-        url = img['src']
-        img_files.append(img['src'])
+    #PAK ODKOMENTOVAT!
+    #for img in soup.find_all('img'): 
+    #    url = img['src']
+    #    img_files.append(img['src'])
 
-        new_src = split_path(url)
+    #    new_src = split_path(url)
 
-        print("Downloading image: " + new_src)
-        urllib.request.urlretrieve(img['src'], new_src) #stáhne obrázek
+    #    print("Downloading image: " + new_src)
+    #    urllib.request.urlretrieve(img['src'], new_src) #stáhne obrázek
             
-        img['src'] = new_src #nahradí původní src jen názvem souboru
-        html = str(soup) #uloží upravený kód do soup
+    #    img['src'] = new_src #nahradí původní src jen názvem souboru
+    #    html = str(soup) #uloží upravený kód do soup
 
     file_html_tree = create_file() 
     save_to_file(file_html_tree, soup.prettify()) #uloží získaný a upravený html kód do samostatného .html souboru
@@ -176,12 +190,20 @@ def main():
     parse_url = urlparse(URL_input)
     print(parse_url) #pro kontrolu, potom smazat
     base_url = parse_url.scheme + "://" + parse_url.netloc
-    print(base_url) #pro kontrolu, potom smazat
+    print("Base url: " + base_url) #pro kontrolu, potom smazat
+    
+    # doména stránky + path část
+    path_url = parse_url.scheme + "://" + parse_url.netloc + parse_url.path
+    print("URL with path: " + path_url) #pro kontrolu, potom smazat
 
     html = driver.page_source 
     soup = BeautifulSoup(html, "html5lib")
 
-    find_styles_images(base_url)
+    original_html = open("index_original.html", "w", encoding="utf-8")
+    original_html.write(soup.prettify())
+    original_html.close
+
+    find_styles_images(base_url, path_url)
     
     print("scraping css") #pro kontrolu, potom smazat
     scrape_style_files("css_files.txt")
@@ -189,4 +211,5 @@ def main():
 
 
     
+
 main()
