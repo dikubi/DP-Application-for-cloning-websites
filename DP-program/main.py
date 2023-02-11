@@ -76,21 +76,16 @@ def scrape_style_files(file_with_urls_found):
         save_to_file(file_style, scraped_code)
         close_file(file_style)
 
-def download_images(soup):
-    """Najde tagy img v html, získá jejich url adresu a lokálně je uloží pod jejich
-    původním jménem."""
-
-    images = soup.find_all('img')
-    
-    with open("images.txt", "w") as f:
-        for item in images:
-            parse_url = urlparse(item['src'])
-            just_path = parse_url.path  #vrátí cestu k souboru, bez https atd.
-            head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a název souboru
-            file_name =  head_tail[1]  #vrátí jen název souboru
-            print(item['src'], file=f) #uloží odkaz na obrázek do txt souboru
-            print("Downloading image: " + file_name)
-            urllib.request.urlretrieve(item['src'], file_name) #stáhne obrázek
+def download_images():
+    file = open("images.txt", "r")
+    for line in file:
+        file_name = split_path(line)
+        print("Downloading image: " + file_name)
+        try:
+            urllib.request.urlretrieve(line, file_name) #stáhne obrázek
+        except urllib.error.HTTPError:
+            print("Soubor: " + line + " je prázdný.")
+            continue
 
 def find_styles_images(base_url, path_url):
     """Najde v html stránky (soup) všechny odkazy na css a js styly a obrázky, 
@@ -137,8 +132,8 @@ def find_styles_images(base_url, path_url):
                 if contains_scheme == True:
                     cs_files.append(url)
                 else:    
-                    js_files.append(base_url + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
-                    js_files.append(base_url + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
+                    cs_files.append(base_url + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
+                    cs_files.append(base_url + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
                     cs_files.append(base_url+url)
             else:
                 print("nebude uloženo:  " + url) #pro kontrolu, potom smazat
@@ -148,18 +143,23 @@ def find_styles_images(base_url, path_url):
             css['href'] = new_src #nahradí původní href jen názvem souboru
             html = str(soup) #uloží upravený kód do soup
 
-    #PAK ODKOMENTOVAT!
-    #for img in soup.find_all('img'): 
-    #    url = img['src']
-    #    img_files.append(img['src'])
+    for img in soup.find_all('img'): 
+        url = img['src']
+        contains_scheme = url.startswith("http")
+        contains_dot = url.startswith(".")
+        if contains_dot == True:
+            url = url[1:]
+        if contains_scheme == True:
+            img_files.append(url)
+        else:    
+            img_files.append(base_url + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
+            img_files.append(base_url + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
+            img_files.append(base_url+url)
 
-    #    new_src = split_path(url)
-
-    #    print("Downloading image: " + new_src)
-    #    urllib.request.urlretrieve(img['src'], new_src) #stáhne obrázek
+        new_src = split_path(url)
             
-    #    img['src'] = new_src #nahradí původní src jen názvem souboru
-    #    html = str(soup) #uloží upravený kód do soup
+        img['src'] = new_src #nahradí původní src jen názvem souboru
+        html = str(soup) #uloží upravený kód do soup
 
     file_html_tree = create_file() 
     save_to_file(file_html_tree, soup.prettify()) #uloží získaný a upravený html kód do samostatného .html souboru
@@ -208,6 +208,8 @@ def main():
     print("scraping css") #pro kontrolu, potom smazat
     scrape_style_files("css_files.txt")
     scrape_style_files("javascript_files.txt")
+
+    download_images()
 
 
     
