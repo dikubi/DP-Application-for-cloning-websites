@@ -88,13 +88,15 @@ def download_images(soup):
             print("Downloading image: " + file_name)
             urllib.request.urlretrieve(item['src'], file_name) #stáhne obrázek
 
-def find_styles(base_url):
-    """Najde v html stránky (soup) všechny odkazy na css a js styly, uloží je do listů 
-    a tyto listy pak uloží do souborů javascript_files.txt a css_files.txt,
-    zaroveň upraví jejich src a href v soup a uloží do index.html"""
+def find_styles_images(base_url):
+    """Najde v html stránky (soup) všechny odkazy na css a js styly a obrázky, 
+    uloží je do listů a tyto listy pak uloží do souborů javascript_files.txt,
+    css_files.txt, images.txt.
+    Zaroveň upraví jejich src a href v soup a uloží do index.html"""
 
     js_files = []
     cs_files = []
+    img_files = []
 
     html = driver.page_source
     soup = BeautifulSoup(html, "html5lib")
@@ -133,6 +135,18 @@ def find_styles(base_url):
             css['href'] = new_src #nahradí původní href jen názvem souboru
             html = str(soup) #uloží upravený kód do soup
 
+    for img in soup.find_all('img'):
+        url = img['src']
+        img_files.append(img['src'])
+
+        new_src = split_path(url)
+
+        print("Downloading image: " + new_src)
+        urllib.request.urlretrieve(img['src'], new_src) #stáhne obrázek
+            
+        img['src'] = new_src #nahradí původní src jen názvem souboru
+        html = str(soup) #uloží upravený kód do soup
+
     file_html_tree = create_file() 
     save_to_file(file_html_tree, soup.prettify()) #uloží získaný a upravený html kód do samostatného .html souboru
     close_file(file_html_tree)
@@ -149,6 +163,9 @@ def find_styles(base_url):
         for css_file in cs_files:
             print(css_file, file=f)
 
+    with open("images.txt", "w") as f:
+        for img_file in img_files:
+            print(img_file, file=f) 
 
 def main():
     URL_input = input("Vložte URL: ")
@@ -164,13 +181,12 @@ def main():
     html = driver.page_source 
     soup = BeautifulSoup(html, "html5lib")
 
-    find_styles(base_url)
-
+    find_styles_images(base_url)
+    
     print("scraping css") #pro kontrolu, potom smazat
     scrape_style_files("css_files.txt")
     scrape_style_files("javascript_files.txt")
 
-    download_images(soup)
 
     
 main()
