@@ -77,10 +77,6 @@ def download_images(soup):
     původním jménem."""
 
     images = soup.find_all('img')
-
-    for item in images:
-        print("scraping images: ")
-        print(item['src'])
     
     with open("images.txt", "w") as f:
         for item in images:
@@ -88,15 +84,14 @@ def download_images(soup):
             just_path = parse_url.path  #vrátí cestu k souboru, bez https atd.
             head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a název souboru
             file_name =  head_tail[1]  #vrátí jen název souboru
-            print("head je: " + file_name)  #pro kontrolu, potom smazat
             print(item['src'], file=f) #uloží odkaz na obrázek do txt souboru
             print("Downloading image: " + file_name)
             urllib.request.urlretrieve(item['src'], file_name) #stáhne obrázek
-    
 
-def find_styles(base_url): #původně další param soup
+def find_styles(base_url):
     """Najde v html stránky (soup) všechny odkazy na css a js styly, uloží je do listů 
-    a tyto listy pak uloží do souborů javascript_files.txt a css_files.txt."""
+    a tyto listy pak uloží do souborů javascript_files.txt a css_files.txt,
+    zaroveň upraví jejich src a href v soup a uloží do index.html"""
 
     js_files = []
     cs_files = []
@@ -142,8 +137,8 @@ def find_styles(base_url): #původně další param soup
     save_to_file(file_html_tree, soup.prettify()) #uloží získaný a upravený html kód do samostatného .html souboru
     close_file(file_html_tree)
 
-    print(f"Total {len(js_files)} javascript files found") #pro kontrolu, potom smazat
-    print(f"Total {len(cs_files)} CSS files found") #pro kontrolu, potom smazat
+    print(f"Celkem {len(js_files)} javascript souborů nalezeno") #pro kontrolu, potom smazat
+    print(f"Celkem {len(cs_files)} CSS souborů nalezeno") #pro kontrolu, potom smazat
     
     #nalezené odkazy, které byly uloženy do listů, se uloží do .txt souborů
     with open("javascript_files.txt", "w") as f:
