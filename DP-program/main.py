@@ -20,28 +20,37 @@ def close_file(file):
     file.close()
 
 def create_file():
-    #time_now = time.strftime("%Y%m%d-%H%M%S")
-    #file_name = time_now + ".html"
     file_name = "index.html"
     file = open(file_name, "w", encoding="utf-8")
     return file
 
-def create_file_style(original_path): #original_path je adresa css/js stylu, která byla získána z vložené stránky
-    parse_url = urlparse(original_path)
+def split_path(url):
+    """Oddělí cestu od názvu souboru a vrátí jen název souboru."""
+
+    parse_url = urlparse(url)
     just_path = parse_url.path  #vrátí cestu k souboru, bez https atd.
     head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a název souboru
-    file_name =  head_tail[1]  #vrátí jen název souboru
-    print("head je: " + file_name)  #pro kontrolu, potom smazat
+    name =  head_tail[1]  #vrátí jen název souboru
+    return name
+
+def create_file_style(original_path):
+    """Vytvoří prázdné soubory pro styly,
+    original_path je adresa css/js stylu, která byla získána z vložené stránky,
+    pomocí fce split_path je upravena a použita jako název pro soubor."""
+    
+    file_name = split_path(original_path)
+    
+    print("Vytvořen soubor s jménem: " + file_name)  #pro kontrolu, potom smazat
     file = open(file_name, "w", encoding="utf-8")
     return file
 
 def save_to_file(file, input_to_file):
     file.write(input_to_file)
 
-
 def scrape_style_files(file_with_urls_found):
     """Projde odkazy na css/js styly v .txt dokumentech a vytáhne z nich css/js kód.
-    Poté zavolá create_file_style, která vytvoří .css / .js souboru pro každý soubor."""
+    Poté zavolá create_file_style, která vytvoří .css / .js souboru pro každý soubor
+    a uloží do něj získaný kód stylu."""
 
     file = open(file_with_urls_found, "r")
     for line in file:
@@ -105,18 +114,10 @@ def find_styles(base_url): #původně další param soup
             else:
                 js_files.append(base_url+url)
 
-            parse_url = urlparse(url)
-            just_path = parse_url.path  #vrátí cestu k souboru, bez https atd.
-            head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a název souboru
-            new_src =  head_tail[1]  #vrátí jen název souboru
+            new_src = split_path(url)
             
-            script['src'] = new_src
-            html = str(soup)
-
-    #file_html_tree = create_file() 
-    #save_to_file(file_html_tree, soup.prettify()) #uloží získaný html kód do samostatného .html souboru
-    #close_file(file_html_tree)
-            #rewrite_src(url)
+            script['src'] = new_src #nahradí původní src jen názvem souboru
+            html = str(soup) #uloží upravený kód do soup
 
     for css in soup.find_all("link"):
         if css.attrs.get("href"):
@@ -131,17 +132,14 @@ def find_styles(base_url): #původně další param soup
                     cs_files.append(base_url+url)
             else:
                 print("nebude uloženo:  " + url) #pro kontrolu, potom smazat
-            
-            parse_url = urlparse(url)
-            just_path = parse_url.path  #vrátí cestu k souboru, bez https atd.
-            head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a název souboru
-            new_src =  head_tail[1]  #vrátí jen název souboru
 
-            css['href'] = new_src
-            html = str(soup)
+            new_src = split_path(url)
+
+            css['href'] = new_src #nahradí původní href jen názvem souboru
+            html = str(soup) #uloží upravený kód do soup
 
     file_html_tree = create_file() 
-    save_to_file(file_html_tree, soup.prettify()) #uloží získaný html kód do samostatného .html souboru
+    save_to_file(file_html_tree, soup.prettify()) #uloží získaný a upravený html kód do samostatného .html souboru
     close_file(file_html_tree)
 
     print(f"Total {len(js_files)} javascript files found") #pro kontrolu, potom smazat
