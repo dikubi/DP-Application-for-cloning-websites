@@ -111,8 +111,11 @@ def find_styles_images(base_url, path_url):
             if contains_scheme == True:
                 js_files.append(url)
             else:
-                js_files.append(base_url + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
-                js_files.append(base_url + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
+                js_files.append(base_url + "/" + 
+                                PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
+                                PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
+                js_files.append(base_url + "/" + 
+                                PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
                 js_files.append(base_url+url)
 
             new_src = split_path(url)
@@ -132,9 +135,12 @@ def find_styles_images(base_url, path_url):
                 if contains_scheme == True:
                     cs_files.append(url)
                 else:    
-                    cs_files.append(base_url + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
-                    cs_files.append(base_url + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
-                    cs_files.append(base_url+url)
+                    cs_files.append(base_url + "/" + 
+                                    PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
+                                    PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
+                    cs_files.append(base_url + "/" + 
+                                    PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
+                    cs_files.append(base_url + url)
             else:
                 print("nebude uloženo:  " + url) #pro kontrolu, potom smazat
 
@@ -152,9 +158,12 @@ def find_styles_images(base_url, path_url):
         if contains_scheme == True:
             img_files.append(url)
         else:    
-            img_files.append(base_url + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
-            img_files.append(base_url + "/" + PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
-            img_files.append(base_url+url)
+            img_files.append(base_url + "/" +
+                            PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
+                            PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
+            img_files.append(base_url + "/" + 
+                            PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
+            img_files.append(base_url + url)
 
         new_src = split_path(url)
             
