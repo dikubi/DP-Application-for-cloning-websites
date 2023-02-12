@@ -1,11 +1,6 @@
-html.parser
 bs4==0.0.1
 beautifulsoup4==4.10.0
-os
 selenium==4.8.0
-time
-datetime
-tkinter
 html5lib==1.1
 requests==2.27.1
 urllib3==1.26.9
