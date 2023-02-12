@@ -12,7 +12,6 @@ import urllib.request
 import os
 import re
 from os.path import basename, splitext
-import pathlib
 from urllib.parse import unquote, urlparse
 from pathlib import PurePosixPath
 
@@ -77,6 +76,8 @@ def scrape_style_files(file_with_urls_found):
         close_file(file_style)
 
 def download_images():
+    """Projde odkazy na obrázky v .txt a stáhne je."""
+
     file = open("images.txt", "r")
     for line in file:
         file_name = split_path(line)
@@ -102,7 +103,6 @@ def find_styles_images(base_url, path_url):
     
     for script in soup.find_all("script"):
         if script.attrs.get("src"):
-        # if the tag has the attribute 'src'
             url = script.attrs.get("src")
             contains_scheme = url.startswith("http")
             contains_dot = url.startswith(".")
@@ -111,22 +111,24 @@ def find_styles_images(base_url, path_url):
             if contains_scheme == True:
                 js_files.append(url)
             else:
-                js_files.append(base_url + "/" + 
-                                PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
-                                PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
-                js_files.append(base_url + "/" + 
-                                PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
-                js_files.append(base_url+url)
+                try: #prochází úrovně adresy a pro každou uloží nalezený src 
+                    js_files.append(base_url + "/" + 
+                                    PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
+                                    PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
+                    js_files.append(base_url + "/" + 
+                                    PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
+                    js_files.append(base_url+url)
+                except IndexError:
+                    continue
 
             new_src = split_path(url)
             
             script['src'] = new_src #nahradí původní src jen názvem souboru
             html = str(soup) #uloží upravený kód do soup
 
-    for css in soup.find_all("link"):
-        if css.attrs.get("href"):
-        # if the link tag has the 'href' attribute
-            url = css.attrs.get("href")
+    for item in soup.find_all("link"):
+        if item.attrs.get("href"):
+            url = item.attrs.get("href")
             contains_scheme = url.startswith("http")
             if (url.__contains__("css")):
                 print("bude uloženo:  " + url) #pro kontrolu, potom smazat
@@ -135,18 +137,37 @@ def find_styles_images(base_url, path_url):
                 if contains_scheme == True:
                     cs_files.append(url)
                 else:    
-                    cs_files.append(base_url + "/" + 
-                                    PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
-                                    PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
-                    cs_files.append(base_url + "/" + 
-                                    PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
-                    cs_files.append(base_url + url)
+                    try: #prochází úrovně adresy a pro každou uloží nalezený href 
+                        cs_files.append(base_url + "/" + 
+                                        PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
+                                        PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
+                        cs_files.append(base_url + "/" + 
+                                        PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
+                        cs_files.append(base_url + url)
+                    except IndexError:
+                        continue
+            elif url.endswith(".png") == True or url.endswith(".jpg") == True:
+                print("bude uloženo:  " + url) #pro kontrolu, potom smazat
+                if contains_dot == True:
+                    url = url[1:]
+                if contains_scheme == True:
+                    img_files.append(url)
+                else:   
+                    try: 
+                        img_files.append(base_url + "/" + 
+                                        PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
+                                        PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
+                        img_files.append(base_url + "/" + 
+                                        PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
+                        img_files.append(base_url + url)
+                    except IndexError:
+                        continue
             else:
                 print("nebude uloženo:  " + url) #pro kontrolu, potom smazat
 
             new_src = split_path(url)
 
-            css['href'] = new_src #nahradí původní href jen názvem souboru
+            item['href'] = new_src #nahradí původní href jen názvem souboru
             html = str(soup) #uloží upravený kód do soup
 
     for img in soup.find_all('img'): 
@@ -157,13 +178,16 @@ def find_styles_images(base_url, path_url):
             url = url[1:]
         if contains_scheme == True:
             img_files.append(url)
-        else:    
-            img_files.append(base_url + "/" +
-                            PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
-                            PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
-            img_files.append(base_url + "/" + 
-                            PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
-            img_files.append(base_url + url)
+        else:  
+            try:  
+                img_files.append(base_url + "/" +
+                                PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
+                                PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
+                img_files.append(base_url + "/" + 
+                                PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
+                img_files.append(base_url + url)
+            except IndexError:
+                continue
 
         new_src = split_path(url)
             
