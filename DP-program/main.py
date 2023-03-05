@@ -14,7 +14,8 @@ import re
 from os.path import basename, splitext
 from urllib.parse import unquote, urlparse
 from pathlib import PurePosixPath
-
+import cssutils
+import logging
 
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
 
@@ -30,10 +31,20 @@ def split_path(url):
     """Oddělí cestu od názvu souboru a vrátí jen název souboru."""
 
     parse_url = urlparse(url)
-    just_path = parse_url.path  #vrátí cestu k souboru, bez https atd.
+    just_path = parse_url.path  #vrátí cestu k souboru (pod/složky a název souboru), bez https atd.
     head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a název souboru
     name =  head_tail[1]  #vrátí jen název souboru
+
     return name
+
+    #fragment = parse_url.fragment #pridano
+    #name_fragment = name + "#" + fragment
+    
+    #if not fragment:
+    #    return name
+    #else:
+    #    return name_fragment
+
 
 def create_file_style(original_path):
     """Vytvoří prázdné soubory pro styly,
@@ -49,6 +60,25 @@ def create_file_style(original_path):
 def save_to_file(file, input_to_file):
     file.write(input_to_file)
 
+def parse_css(css_file):
+    """Projde vytvořený .css soubor a pokud v něm jsou nějaké url odkazy,
+    uloží je do listu found_urls_css a do found_url_css.txt."""
+
+    found_urls_css = []
+    print("Do parse vstupuje: " + css_file)
+    
+    cssutils.log.setLevel(logging.CRITICAL)
+    sheet = cssutils.parseFile(css_file)
+    urls = cssutils.getUrls(sheet)
+
+    for url in urls:
+        print("získané url: " + url)
+        found_urls_css.append(url)
+
+    with open("found_url_css.txt", "a") as f:
+        for found_url in found_urls_css:
+            print(found_url, file=f)
+
 def scrape_style_files(file_with_urls_found):
     """Projde odkazy na css/js styly v .txt dokumentech a vytáhne z nich css/js kód.
     Poté zavolá create_file_style, která vytvoří .css / .js souboru pro každý soubor
@@ -58,7 +88,7 @@ def scrape_style_files(file_with_urls_found):
     for line in file:
         print("uložený odkaz: " + line) #pro kontrolu, potom smazat
         driver.get(line) 
-        time.sleep(5)
+        time.sleep(1)
 
         html = driver.page_source 
         soup = BeautifulSoup(html, "html5lib")
@@ -74,6 +104,15 @@ def scrape_style_files(file_with_urls_found):
         file_style = create_file_style(line) #line je předáno pro vytvoření správného názvu souboru
         save_to_file(file_style, scraped_code)
         close_file(file_style)
+
+        file_name = split_path(line)
+        
+        if file_name.endswith(".css"):
+            print("---Volá se parse_css---")
+            parse_css(file_name) #volá se fce pro získání url z uloženého css souboru
+        #elif line.endswith(".js"):
+        #   zde se bude volat fce pro získání url z uloženého JS souboru
+        #    continue
 
 def download_images():
     """Projde odkazy na obrázky v .txt a stáhne je."""
@@ -194,6 +233,33 @@ def find_styles_images(base_url, path_url):
         img['src'] = new_src #nahradí původní src jen názvem souboru
         html = str(soup) #uloží upravený kód do soup
 
+    #HLEDÁNÍ SVG IKON V VUT.CZ
+    # for item in soup.find_all('use'):
+    #     if item.attrs.get("xlink:href"):
+    #         url = item.attrs.get("xlink:href")
+    #         contains_scheme = url.startswith("http")
+    #         contains_dot = url.startswith(".")
+    #         if contains_dot == True:
+    #             url = url[1:]
+    #         if contains_scheme == True:
+    #             img_files.append(url)
+    #         else:
+    #             try: #prochází úrovně adresy a pro každou uloží nalezený src 
+    #                 img_files.append(base_url + "/" + 
+    #                                 PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
+    #                                 PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
+    #                 img_files.append(base_url + "/" + 
+    #                                 PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
+    #                 img_files.append(base_url+url)
+    #             except IndexError:
+    #                 continue
+
+    #         new_src = split_path(url)
+            
+    #         item['xlink:href'] = new_src #nahradí původní src jen názvem souboru
+    #         html = str(soup) #uloží upravený kód do soup
+
+
     file_html_tree = create_file() 
     save_to_file(file_html_tree, soup.prettify()) #uloží získaný a upravený html kód do samostatného .html souboru
     close_file(file_html_tree)
@@ -202,19 +268,21 @@ def find_styles_images(base_url, path_url):
     print(f"Celkem {len(cs_files)} CSS souborů nalezeno") #pro kontrolu, potom smazat
     
     #nalezené odkazy, které byly uloženy do listů, se uloží do .txt souborů
-    with open("javascript_files.txt", "w") as f:
+    with open("javascript_files.txt", "a") as f:
         for js_file in js_files:
             print(js_file, file=f)
 
-    with open("css_files.txt", "w") as f:
+    with open("css_files.txt", "a") as f:
         for css_file in cs_files:
             print(css_file, file=f)
 
-    with open("images.txt", "w") as f:
+    with open("images.txt", "a") as f:
         for img_file in img_files:
             print(img_file, file=f) 
 
+
 def main():
+
     URL_input = input("Vložte URL: ")
     driver.get(URL_input) 
     time.sleep(5)
