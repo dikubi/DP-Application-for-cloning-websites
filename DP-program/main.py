@@ -60,26 +60,45 @@ def create_file_style(original_path):
 def save_to_file(file, input_to_file):
     file.write(input_to_file)
 
-def parse_css(css_file):
+def parse_css(css_file, base_url, path_url):
     """Projde vytvořený .css soubor a pokud v něm jsou nějaké url odkazy,
-    uloží je do listu found_urls_css a do found_url_css.txt."""
+    uloží je do listu found_urls_css a do found_url_css.txt pod absolutní cestou."""
 
     found_urls_css = []
     print("Do parse vstupuje: " + css_file)
     
-    cssutils.log.setLevel(logging.CRITICAL)
-    sheet = cssutils.parseFile(css_file)
-    urls = cssutils.getUrls(sheet)
+    cssutils.log.setLevel(logging.CRITICAL) #zabrání vypisování useless logů
+    sheet = cssutils.parseFile(css_file) #parse css souboru
+    urls = cssutils.getUrls(sheet) #nalezení parametrů url
 
     for url in urls:
-        print("získané url: " + url)
-        found_urls_css.append(url)
+        print("------ nalezené url:  " + url)
+        edited_url = url.lstrip("./") #odstraní ./ vyskytující se z leva, ať jsou v jakémkoli pořadí a množství
+        print("------ editované url: " + edited_url)
+        contains_scheme = url.startswith("http")
+        if contains_scheme == True:
+            print("-----------1" + url)
+            found_urls_css.append(url)
+        else:
+            try: #prochází úrovně adresy a pro každou uloží nalezený src 
+                print("-----------2" + edited_url)
+                #print("získané url: " + url)
+                found_urls_css.append(base_url + "/" + 
+                                PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
+                                PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + "/" + 
+                                edited_url)
+                found_urls_css.append(base_url + "/" + 
+                                PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
+                                edited_url)
+                found_urls_css.append(base_url + "/" + edited_url)
+            except IndexError:
+                continue
 
     with open("found_url_css.txt", "a") as f:
         for found_url in found_urls_css:
             print(found_url, file=f)
 
-def scrape_style_files(file_with_urls_found):
+def scrape_style_files(file_with_urls_found, base_url, path_url):
     """Projde odkazy na css/js styly v .txt dokumentech a vytáhne z nich css/js kód.
     Poté zavolá create_file_style, která vytvoří .css / .js souboru pro každý soubor
     a uloží do něj získaný kód stylu."""
@@ -109,7 +128,7 @@ def scrape_style_files(file_with_urls_found):
         
         if file_name.endswith(".css"):
             print("---Volá se parse_css---")
-            parse_css(file_name) #volá se fce pro získání url z uloženého css souboru
+            parse_css(file_name, base_url, path_url) #volá se fce pro získání url z uloženého css souboru
         #elif line.endswith(".js"):
         #   zde se bude volat fce pro získání url z uloženého JS souboru
         #    continue
@@ -307,8 +326,8 @@ def main():
     find_styles_images(base_url, path_url)
     
     print("scraping css") #pro kontrolu, potom smazat
-    scrape_style_files("css_files.txt")
-    scrape_style_files("javascript_files.txt")
+    scrape_style_files("css_files.txt", base_url, path_url)
+    scrape_style_files("javascript_files.txt", base_url, path_url)
 
     download_images()
 
