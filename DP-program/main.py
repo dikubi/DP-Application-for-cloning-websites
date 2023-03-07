@@ -73,7 +73,7 @@ def parse_css(css_file, base_url, path_url):
 
     for url in urls:
         print("------ nalezené url:  " + url)
-        edited_url = url.lstrip("./") #odstraní ./ vyskytující se z leva, ať jsou v jakémkoli pořadí a množství
+        edited_url = url.lstrip("./") #odstraní ./ vyskytující se zleva, ať jsou v jakémkoli pořadí a množství
         print("------ editované url: " + edited_url)
         contains_scheme = url.startswith("http")
         if contains_scheme == True:
@@ -82,7 +82,6 @@ def parse_css(css_file, base_url, path_url):
         else:
             try: #prochází úrovně adresy a pro každou uloží nalezený src 
                 print("-----------2" + edited_url)
-                #print("získané url: " + url)
                 found_urls_css.append(base_url + "/" + 
                                 PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
                                 PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + "/" + 
@@ -163,19 +162,19 @@ def find_styles_images(base_url, path_url):
         if script.attrs.get("src"):
             url = script.attrs.get("src")
             contains_scheme = url.startswith("http")
-            contains_dot = url.startswith(".")
-            if contains_dot == True:
-                url = url[1:]
+            edited_url = url.lstrip("./") #odstraní ./ vyskytující se zleva, ať jsou v jakémkoli pořadí a množství
             if contains_scheme == True:
                 js_files.append(url)
             else:
                 try: #prochází úrovně adresy a pro každou uloží nalezený src 
                     js_files.append(base_url + "/" + 
                                     PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
-                                    PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
+                                    PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + "/" + 
+                                    edited_url)
                     js_files.append(base_url + "/" + 
-                                    PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
-                    js_files.append(base_url+url)
+                                    PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
+                                    edited_url)
+                    js_files.append(base_url + "/" + edited_url)
                 except IndexError:
                     continue
 
@@ -188,36 +187,37 @@ def find_styles_images(base_url, path_url):
         if item.attrs.get("href"):
             url = item.attrs.get("href")
             contains_scheme = url.startswith("http")
+            edited_url = url.lstrip("./") #odstraní ./ vyskytující se zleva, ať jsou v jakémkoli pořadí a množství
             if (url.__contains__("css")):
                 print("bude uloženo:  " + url) #pro kontrolu, potom smazat
-                if contains_dot == True:
-                    url = url[1:]
                 if contains_scheme == True:
                     cs_files.append(url)
                 else:    
                     try: #prochází úrovně adresy a pro každou uloží nalezený href 
                         cs_files.append(base_url + "/" + 
                                         PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
-                                        PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
+                                        PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + "/" +
+                                        edited_url)
                         cs_files.append(base_url + "/" + 
-                                        PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
-                        cs_files.append(base_url + url)
+                                        PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
+                                        edited_url)
+                        cs_files.append(base_url + "/" + edited_url)
                     except IndexError:
                         continue
             elif url.endswith(".png") == True or url.endswith(".jpg") == True:
                 print("bude uloženo:  " + url) #pro kontrolu, potom smazat
-                if contains_dot == True:
-                    url = url[1:]
                 if contains_scheme == True:
                     img_files.append(url)
                 else:   
                     try: 
                         img_files.append(base_url + "/" + 
                                         PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
-                                        PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
+                                        PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + "/" + 
+                                        edited_url)
                         img_files.append(base_url + "/" + 
-                                        PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
-                        img_files.append(base_url + url)
+                                        PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
+                                        edited_url)
+                        img_files.append(base_url + "/" + edited_url)
                     except IndexError:
                         continue
             else:
@@ -231,19 +231,19 @@ def find_styles_images(base_url, path_url):
     for img in soup.find_all('img'): 
         url = img['src']
         contains_scheme = url.startswith("http")
-        contains_dot = url.startswith(".")
-        if contains_dot == True:
-            url = url[1:]
+        edited_url = url.lstrip("./") #odstraní ./ vyskytující se zleva, ať jsou v jakémkoli pořadí a množství
         if contains_scheme == True:
             img_files.append(url)
         else:  
             try:  
                 img_files.append(base_url + "/" +
                                 PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
-                                PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
+                                PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + "/" + 
+                                edited_url)
                 img_files.append(base_url + "/" + 
-                                PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
-                img_files.append(base_url + url)
+                                PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
+                                edited_url)
+                img_files.append(base_url + "/" + edited_url)
             except IndexError:
                 continue
 
