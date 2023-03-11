@@ -28,7 +28,9 @@ def create_file():
     return file
 
 def split_path(url):
-    """Oddělí cestu od názvu souboru a vrátí jen název souboru."""
+    """
+    Oddělí cestu od názvu souboru a vrátí jen název souboru.
+    """
 
     parse_url = urlparse(url)
     just_path = parse_url.path  #vrátí cestu k souboru (pod/složky a název souboru), bez https atd.
@@ -47,9 +49,11 @@ def split_path(url):
 
 
 def create_file_style(original_path):
-    """Vytvoří prázdné soubory pro styly,
+    """
+    Vytvoří prázdné soubory pro styly,
     original_path je adresa css/js stylu, která byla získána z vložené stránky,
-    pomocí fce split_path je upravena a použita jako název pro soubor."""
+    pomocí fce split_path je upravena a použita jako název pro soubor.
+    """
     
     file_name = split_path(original_path)
     
@@ -60,36 +64,65 @@ def create_file_style(original_path):
 def save_to_file(file, input_to_file):
     file.write(input_to_file)
 
-def parse_css(css_file, base_url, path_url):
-    """Projde vytvořený .css soubor a pokud v něm jsou nějaké url odkazy,
-    uloží je do listu found_urls_css a do found_url_css.txt pod absolutní cestou."""
+def parse_css(css_file, base_url, path_url, line):
+    """
+    Projde vytvořený .css soubor a pokud v něm jsou nějaké url odkazy,
+    uloží je do listu found_urls_css a do found_url_css.txt pod absolutní cestou.
+    
+    :css_file: uložený css soubor
+    :base_url: url input oseknutý na scheme + domain
+    :path_url: url stránky od uživatele bez úprav
+    :line: celá url k css, ze kterého extrahuji další url - nutné pro sestavení
+    absolutní url z relativní, která je uvedena v daném uloženém css souboru.
+    """
 
     found_urls_css = []
     print("Do parse vstupuje: " + css_file)
     
     cssutils.log.setLevel(logging.CRITICAL) #zabrání vypisování useless logů
-    sheet = cssutils.parseFile(css_file) #parse css souboru
+    sheet = cssutils.parseFile(css_file) #parse uloženého css souboru
     urls = cssutils.getUrls(sheet) #nalezení parametrů url
 
     for url in urls:
-        print("------ nalezené url:  " + url)
-        edited_url = url.lstrip("./") #odstraní ./ vyskytující se zleva, ať jsou v jakémkoli pořadí a množství
-        print("------ editované url: " + edited_url)
+        print("--nalezené url:  " + url)
         contains_scheme = url.startswith("http")
+        edited_url = url.lstrip("./") #odstraní všechny ./ vyskytující se zleva
+        print("--editované url: " + edited_url)
         if contains_scheme == True:
-            print("-----------1" + url)
+            print("--1" + url)
             found_urls_css.append(url)
         else:
             try: #prochází úrovně adresy a pro každou uloží nalezený src 
-                print("-----------2" + edited_url)
-                found_urls_css.append(base_url + "/" + 
-                                PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
-                                PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + "/" + 
-                                edited_url)
-                found_urls_css.append(base_url + "/" + 
-                                PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
-                                edited_url)
-                found_urls_css.append(base_url + "/" + edited_url)
+                print("--2" + edited_url)
+                dots_counter = len(url)-len(url.lstrip('.'))
+                print("------- počet teček: " + str(dots_counter))
+
+                parse_url = urlparse(line)
+                just_path = parse_url.path  #vrátí cestu k souboru s názvem souboru (začíná /)
+                head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a název souboru
+                way =  head_tail[0]  #vrátí jen cestu k souboru bez názvu souboru (ponechává / na začátku)
+                
+                head_tail_second = os.path.split(way) #cestu rozdělí na cestu a poslední složku (nenechává / nakonci)
+                way_second = head_tail_second[0] #vrátí jen cestu bez poslední složky
+                #if dots_counter == 0:
+                    
+                if dots_counter == 1: #zůstává se ve stejné složce                 
+                    final_string = parse_url.scheme + "://" + parse_url.netloc + way + "/" + edited_url
+                    found_urls_css.append(final_string)
+                    print("----3 " + final_string)
+                if dots_counter == 2: #jde se o jednu složku  výše
+                    final_string = parse_url.scheme + "://" + parse_url.netloc + way_second + "/" + edited_url
+                    found_urls_css.append(final_string)
+                    print("----4 " + final_string)
+
+                # found_urls_css.append(base_url + "/" + 
+                #                 PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
+                #                 PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + "/" + 
+                #                 edited_url)
+                # found_urls_css.append(base_url + "/" + 
+                #                 PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
+                #                 edited_url)
+                # found_urls_css.append(base_url + "/" + edited_url)
             except IndexError:
                 continue
 
@@ -98,11 +131,14 @@ def parse_css(css_file, base_url, path_url):
             print(found_url, file=f)
 
 def scrape_style_files(file_with_urls_found, base_url, path_url):
-    """Projde odkazy na css/js styly v .txt dokumentech a vytáhne z nich css/js kód.
+    """
+    Projde odkazy na css/js styly v .txt dokumentech a vytáhne z nich css/js kód.
     Poté zavolá create_file_style, která vytvoří .css / .js souboru pro každý soubor
-    a uloží do něj získaný kód stylu."""
+    a uloží do něj získaný kód stylu.
+    Poté pro každý vytvořený css soubor zavolá parse_css.
+    """
 
-    file = open(file_with_urls_found, "r")
+    file = open(file_with_urls_found, "r") #otevírá se css_files.txt, pak javascript_files.txt
     for line in file:
         print("uložený odkaz: " + line) #pro kontrolu, potom smazat
         driver.get(line) 
@@ -111,10 +147,10 @@ def scrape_style_files(file_with_urls_found, base_url, path_url):
         html = driver.page_source 
         soup = BeautifulSoup(html, "html5lib")
 
-        pre = soup.find("pre")
+        pre = soup.find("pre") #nalezení tagu pre
         
         try:
-            scraped_code = pre.text
+            scraped_code = pre.text #získání obsahu tagu pre, pokud není prázdný
         except AttributeError:
             print("Soubor: " + line + " je prázdný.")
             continue
@@ -127,18 +163,21 @@ def scrape_style_files(file_with_urls_found, base_url, path_url):
         
         if file_name.endswith(".css"):
             print("---Volá se parse_css---")
-            parse_css(file_name, base_url, path_url) #volá se fce pro získání url z uloženého css souboru
+            parse_css(file_name, base_url, path_url, line) #volá se fce pro získání urls z uloženého css souboru
         #elif line.endswith(".js"):
         #   zde se bude volat fce pro získání url z uloženého JS souboru
-        #    continue
 
-def download_images():
-    """Projde odkazy na obrázky v .txt a stáhne je."""
 
-    file = open("images.txt", "r")
+def download_files(txt_file):
+    """
+    Projde odkazy na soubory v daném .txt a stáhne je.
+    Voláno pro obrázky a fonty.
+    """
+
+    file = open(txt_file, "r")
     for line in file:
         file_name = split_path(line)
-        print("Downloading image: " + file_name)
+        print("Stahuje se soubor: " + file_name)
         try:
             urllib.request.urlretrieve(line, file_name) #stáhne obrázek
         except urllib.error.HTTPError:
@@ -146,10 +185,12 @@ def download_images():
             continue
 
 def find_styles_images(base_url, path_url):
-    """Najde v html stránky (soup) všechny odkazy na css a js styly a obrázky, 
+    """
+    Najde v html stránky (soup) všechny odkazy na css a js styly a obrázky, 
     uloží je do listů a tyto listy pak uloží do souborů javascript_files.txt,
     css_files.txt, images.txt.
-    Zaroveň upraví jejich src a href v soup a uloží do index.html"""
+    Zaroveň upraví jejich src a href v soup a uloží do index.html.
+    """
 
     js_files = []
     cs_files = []
@@ -162,7 +203,7 @@ def find_styles_images(base_url, path_url):
         if script.attrs.get("src"):
             url = script.attrs.get("src")
             contains_scheme = url.startswith("http")
-            edited_url = url.lstrip("./") #odstraní ./ vyskytující se zleva, ať jsou v jakémkoli pořadí a množství
+            edited_url = url.lstrip("./") #odstraní všechny ./ vyskytující se zleva
             if contains_scheme == True:
                 js_files.append(url)
             else:
@@ -187,7 +228,7 @@ def find_styles_images(base_url, path_url):
         if item.attrs.get("href"):
             url = item.attrs.get("href")
             contains_scheme = url.startswith("http")
-            edited_url = url.lstrip("./") #odstraní ./ vyskytující se zleva, ať jsou v jakémkoli pořadí a množství
+            edited_url = url.lstrip("./") #odstraní všechny ./ vyskytující se zleva
             if (url.__contains__("css")):
                 print("bude uloženo:  " + url) #pro kontrolu, potom smazat
                 if contains_scheme == True:
@@ -231,7 +272,7 @@ def find_styles_images(base_url, path_url):
     for img in soup.find_all('img'): 
         url = img['src']
         contains_scheme = url.startswith("http")
-        edited_url = url.lstrip("./") #odstraní ./ vyskytující se zleva, ať jsou v jakémkoli pořadí a množství
+        edited_url = url.lstrip("./") #odstraní všechny ./ vyskytující se zleva
         if contains_scheme == True:
             img_files.append(url)
         else:  
@@ -329,7 +370,8 @@ def main():
     scrape_style_files("css_files.txt", base_url, path_url)
     scrape_style_files("javascript_files.txt", base_url, path_url)
 
-    download_images()
+    download_files("images.txt")
+    download_files("found_url_css.txt")
 
 
     
