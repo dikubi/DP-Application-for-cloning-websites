@@ -92,8 +92,8 @@ def parse_css(css_file, base_url, path_url, line):
             print("--1" + url)
             found_urls_css.append(url)
         else:
-            try: #prochází úrovně adresy a pro každou uloží nalezený src 
-                print("--2" + edited_url)
+            try: 
+                print("--2 " + edited_url)
                 dots_counter = len(url)-len(url.lstrip('.'))
                 print("------- počet teček: " + str(dots_counter))
 
@@ -104,8 +104,8 @@ def parse_css(css_file, base_url, path_url, line):
                 
                 head_tail_second = os.path.split(way) #cestu rozdělí na cestu a poslední složku (nenechává / nakonci)
                 way_second = head_tail_second[0] #vrátí jen cestu bez poslední složky
-                #if dots_counter == 0:
-                    
+                if dots_counter == 0:
+                    print("------- NULA")
                 if dots_counter == 1: #zůstává se ve stejné složce                 
                     final_string = parse_url.scheme + "://" + parse_url.netloc + way + "/" + edited_url
                     found_urls_css.append(final_string)
@@ -113,22 +113,18 @@ def parse_css(css_file, base_url, path_url, line):
                 if dots_counter == 2: #jde se o jednu složku  výše
                     final_string = parse_url.scheme + "://" + parse_url.netloc + way_second + "/" + edited_url
                     found_urls_css.append(final_string)
-                    print("----4 " + final_string)
-
-                # found_urls_css.append(base_url + "/" + 
-                #                 PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
-                #                 PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + "/" + 
-                #                 edited_url)
-                # found_urls_css.append(base_url + "/" + 
-                #                 PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
-                #                 edited_url)
-                # found_urls_css.append(base_url + "/" + edited_url)
+                    print("----4 " + final_string) 
             except IndexError:
                 continue
-
+    
     with open("found_url_css.txt", "a") as f:
         for found_url in found_urls_css:
             print(found_url, file=f)
+
+    cssutils.replaceUrls(sheet, split_path) #nahradí všechny výskyty url výstupem fce split_path
+    with open (css_file, "wb") as f: #otevře daný css soubor
+        f.write(sheet.cssText) #zapíše do něj aktualizované css
+        print("zapsáno")
 
 def scrape_style_files(file_with_urls_found, base_url, path_url):
     """
