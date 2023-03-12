@@ -16,7 +16,8 @@ from urllib.parse import unquote, urlparse
 from pathlib import PurePosixPath
 import cssutils
 import logging
-import http.client
+import http.client #pro chytání exception
+from selenium.common.exceptions import WebDriverException #pro chytání exception
 
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
 
@@ -92,11 +93,11 @@ def parse_css(css_file, base_url, path_url, line):
             print("--to data image, přeskakuji")
             continue
         if contains_scheme == True:
-            print("--1" + url)
+            print("---1 " + url)
             found_urls_css.append(url)
         else:
             try: 
-                print("--2 " + edited_url)
+                print("---2 " + edited_url)
                 dots_counter = len(url)-len(url.lstrip('.'))
                 print("------- počet teček: " + str(dots_counter))
 
@@ -107,20 +108,27 @@ def parse_css(css_file, base_url, path_url, line):
                 
                 head_tail_second = os.path.split(way) #cestu rozdělí na cestu a poslední složku (nenechává / nakonci)
                 way_second = head_tail_second[0] #vrátí jen cestu bez poslední složky
+
+                head_tail_third = os.path.split(way_second) #cestu rozdělí na cestu a poslední složku (nenechává / nakonci)
+                way_third = head_tail_third[0] #vrátí jen cestu bez poslední složky (tzn. celkově odebrány dvě poslední složky)
                 
                 if dots_counter == 0: #je to v root složce .css souboru (může být ve vlastní složce)
-                    print("------- NULA")
+                    print("--- NULA")
                     final_string = parse_url.scheme + "://" + parse_url.netloc + way + "/" + edited_url
                     found_urls_css.append(final_string)
-                    print("----3 " + final_string)
+                    print("---3 " + final_string)
                 if dots_counter == 1: #zůstává se ve stejné složce                 
                     final_string = parse_url.scheme + "://" + parse_url.netloc + way + "/" + edited_url
                     found_urls_css.append(final_string)
-                    print("----4 " + final_string)
+                    print("---4 " + final_string)
                 if dots_counter == 2: #jde se o jednu složku  výše
                     final_string = parse_url.scheme + "://" + parse_url.netloc + way_second + "/" + edited_url
                     found_urls_css.append(final_string)
-                    print("----5 " + final_string) 
+                    print("---5 " + final_string) 
+                if url.startswith("../../"): #jde se o dvě složky výše
+                    final_string = parse_url.scheme + "://" + parse_url.netloc + way_third + "/" + edited_url
+                    found_urls_css.append(final_string)
+                    print("---6 " + final_string) 
             except IndexError:
                 continue
     
@@ -144,8 +152,12 @@ def scrape_style_files(file_with_urls_found, base_url, path_url):
     file = open(file_with_urls_found, "r") #otevírá se css_files.txt, pak javascript_files.txt
     for line in file:
         print("uložený odkaz: " + line) #pro kontrolu, potom smazat
-        driver.get(line) 
-        time.sleep(1)
+        try:
+            driver.get(line) 
+            time.sleep(1)
+        except WebDriverException:
+            print("Odkaz: " + line + " je nedostupný/chybný.")
+            continue
 
         html = driver.page_source 
         soup = BeautifulSoup(html, "html5lib")
