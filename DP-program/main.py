@@ -16,6 +16,7 @@ from urllib.parse import unquote, urlparse
 from pathlib import PurePosixPath
 import cssutils
 import logging
+import http.client
 
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
 
@@ -104,8 +105,12 @@ def parse_css(css_file, base_url, path_url, line):
                 
                 head_tail_second = os.path.split(way) #cestu rozdělí na cestu a poslední složku (nenechává / nakonci)
                 way_second = head_tail_second[0] #vrátí jen cestu bez poslední složky
-                if dots_counter == 0:
+                
+                if dots_counter == 0: #je to v root složce .css souboru (může být ve vlastní složce)
                     print("------- NULA")
+                    final_string = parse_url.scheme + "://" + parse_url.netloc + way + "/" + url
+                    found_urls_css.append(final_string)
+                    print("----3 " + final_string)
                 if dots_counter == 1: #zůstává se ve stejné složce                 
                     final_string = parse_url.scheme + "://" + parse_url.netloc + way + "/" + edited_url
                     found_urls_css.append(final_string)
@@ -179,6 +184,10 @@ def download_files(txt_file):
         except urllib.error.HTTPError:
             print("Soubor: " + line + " je prázdný.")
             continue
+        except http.client.InvalidURL:
+            print("Soubor: " + line + " má neplatnou URL.")
+            continue
+
 
 def find_styles_images(base_url, path_url):
     """
@@ -241,7 +250,7 @@ def find_styles_images(base_url, path_url):
                         cs_files.append(base_url + "/" + edited_url)
                     except IndexError:
                         continue
-            elif url.endswith(".png") == True or url.endswith(".jpg") == True:
+            elif url.endswith(".png") == True or url.endswith(".jpg") == True or url.endswith(".ico") == True:
                 print("bude uloženo:  " + url) #pro kontrolu, potom smazat
                 if contains_scheme == True:
                     img_files.append(url)
