@@ -31,23 +31,18 @@ def create_file():
 def split_path(url):
     """
     Oddělí cestu od názvu souboru a vrátí jen název souboru.
+    Pro soubory s cestou data:image/ se nic nemění, cesta musí takto zůstat,
+    aby byly přístupné přímo.
     """
+    if url.startswith("data:image"):
+        return url
+    else:
+        parse_url = urlparse(url)
+        just_path = parse_url.path  #vrátí cestu k souboru (pod/složky a název souboru), bez https atd.
+        head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a název souboru
+        name =  head_tail[1]  #vrátí jen název souboru
 
-    parse_url = urlparse(url)
-    just_path = parse_url.path  #vrátí cestu k souboru (pod/složky a název souboru), bez https atd.
-    head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a název souboru
-    name =  head_tail[1]  #vrátí jen název souboru
-
-    return name
-
-    #fragment = parse_url.fragment #pridano
-    #name_fragment = name + "#" + fragment
-    
-    #if not fragment:
-    #    return name
-    #else:
-    #    return name_fragment
-
+        return name
 
 def create_file_style(original_path):
     """
@@ -86,9 +81,16 @@ def parse_css(css_file, base_url, path_url, line):
 
     for url in urls:
         print("--nalezené url:  " + url)
+        contains_space = " " in url
         contains_scheme = url.startswith("http")
         edited_url = url.lstrip("./") #odstraní všechny ./ vyskytující se zleva
         print("--editované url: " + edited_url)
+        if contains_space == True:
+            print("--obsahuje mezery, neplatná url, přeskakuji")
+            continue
+        if url.startswith("data:image") == True:
+            print("--to data image, přeskakuji")
+            continue
         if contains_scheme == True:
             print("--1" + url)
             found_urls_css.append(url)
@@ -108,17 +110,17 @@ def parse_css(css_file, base_url, path_url, line):
                 
                 if dots_counter == 0: #je to v root složce .css souboru (může být ve vlastní složce)
                     print("------- NULA")
-                    final_string = parse_url.scheme + "://" + parse_url.netloc + way + "/" + url
+                    final_string = parse_url.scheme + "://" + parse_url.netloc + way + "/" + edited_url
                     found_urls_css.append(final_string)
                     print("----3 " + final_string)
                 if dots_counter == 1: #zůstává se ve stejné složce                 
                     final_string = parse_url.scheme + "://" + parse_url.netloc + way + "/" + edited_url
                     found_urls_css.append(final_string)
-                    print("----3 " + final_string)
+                    print("----4 " + final_string)
                 if dots_counter == 2: #jde se o jednu složku  výše
                     final_string = parse_url.scheme + "://" + parse_url.netloc + way_second + "/" + edited_url
                     found_urls_css.append(final_string)
-                    print("----4 " + final_string) 
+                    print("----5 " + final_string) 
             except IndexError:
                 continue
     
