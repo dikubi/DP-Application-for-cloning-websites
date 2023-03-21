@@ -209,6 +209,9 @@ def find_styles_images(base_url, path_url):
     uloží je do listů a tyto listy pak uloží do souborů javascript_files.txt,
     css_files.txt, images.txt.
     Zaroveň upraví jejich src a href v soup a uloží do index.html.
+
+    :base_url: scheme + netloc
+    :path_url: scheme + netloc + path = input uživatele; to, z čeho beru index.html
     """
 
     js_files = []
@@ -221,20 +224,44 @@ def find_styles_images(base_url, path_url):
     for script in soup.find_all("script"):
         if script.attrs.get("src"):
             url = script.attrs.get("src")
+            contains_space = " " in url
             contains_scheme = url.startswith("http")
             edited_url = url.lstrip("./") #odstraní všechny ./ vyskytující se zleva
+            if contains_space == True:
+                print("--obsahuje mezery, neplatná url, přeskakuji")
+                continue
             if contains_scheme == True:
                 js_files.append(url)
             else:
-                try: #prochází úrovně adresy a pro každou uloží nalezený src 
-                    js_files.append(base_url + "/" + 
-                                    PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
-                                    PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + "/" + 
-                                    edited_url)
-                    js_files.append(base_url + "/" + 
-                                    PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
-                                    edited_url)
-                    js_files.append(base_url + "/" + edited_url)
+                try: 
+                    dots_counter = len(url)-len(url.lstrip('.'))
+
+                    parse_url = urlparse(path_url)
+                    just_path = parse_url.path  #vrátí jen cestu (začíná /)
+                    head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a poslední složku
+                    remove_one_folder =  head_tail[0]  #vrátí jen cestu bez poslední složky (ponechává / na začátku) (tzn. celkově odebrána jedna složka)
+                
+                    head_tail_second = os.path.split(remove_one_folder) #cestu rozdělí na cestu a poslední složku (nenechává / nakonci)
+                    remove_two_folders = head_tail_second[0] #vrátí jen cestu bez poslední složky (tzn. celkově odebrány dvě složky)
+
+                    head_tail_third = os.path.split(remove_two_folders) #cestu rozdělí na cestu a poslední složku (nenechává / nakonci)
+                    remove_three_folders = head_tail_third[0] #vrátí jen cestu bez poslední složky (tzn. celkově odebrány třisložky)
+                
+                    if url.startswith("/"): #je to v root složce 
+                        final_string = parse_url.scheme + "://" + parse_url.netloc + "/" + edited_url
+                        js_files.append(final_string)
+                    elif url.startswith("./"): #zůstává se ve stejné složce 
+                        final_string = parse_url.scheme + "://" + parse_url.netloc + parse_url.path + "/" + edited_url
+                        js_files.append(final_string)
+                    elif url.startswith("../../"): #jde se o dvě složky výše
+                        final_string = parse_url.scheme + "://" + parse_url.netloc + remove_three_folders + "/" + edited_url
+                        js_files.append(final_string)
+                    elif url.startswith("../"): #jde se o jednu složku  výše
+                        final_string = parse_url.scheme + "://" + parse_url.netloc + remove_two_folders + "/" + edited_url
+                        js_files.append(final_string)
+                    else: #neobsahuje ani . ani /, zůstává se ve stejné složce 
+                        final_string = parse_url.scheme + "://" + parse_url.netloc + parse_url.path + "/" + edited_url
+                        js_files.append(final_string)        
                 except IndexError:
                     continue
 
@@ -246,38 +273,85 @@ def find_styles_images(base_url, path_url):
     for item in soup.find_all("link"):
         if item.attrs.get("href"):
             url = item.attrs.get("href")
+            contains_space = " " in url
             contains_scheme = url.startswith("http")
             edited_url = url.lstrip("./") #odstraní všechny ./ vyskytující se zleva
             if (url.__contains__("css")):
                 print("bude uloženo:  " + url) #pro kontrolu, potom smazat
+                if contains_space == True:
+                    print("--obsahuje mezery, neplatná url, přeskakuji")
+                    continue
                 if contains_scheme == True:
                     cs_files.append(url)
                 else:    
                     try: #prochází úrovně adresy a pro každou uloží nalezený href 
-                        cs_files.append(base_url + "/" + 
-                                        PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
-                                        PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + "/" +
-                                        edited_url)
-                        cs_files.append(base_url + "/" + 
-                                        PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
-                                        edited_url)
-                        cs_files.append(base_url + "/" + edited_url)
+                        dots_counter = len(url)-len(url.lstrip('.'))
+
+                        parse_url = urlparse(path_url)
+                        just_path = parse_url.path  #vrátí jen cestu (začíná /)
+                        head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a poslední složku
+                        remove_one_folder =  head_tail[0]  #vrátí jen cestu bez poslední složky (ponechává / na začátku) (tzn. celkově odebrána jedna složka)
+                
+                        head_tail_second = os.path.split(remove_one_folder) #cestu rozdělí na cestu a poslední složku (nenechává / nakonci)
+                        remove_two_folders = head_tail_second[0] #vrátí jen cestu bez poslední složky (tzn. celkově odebrány dvě složky)
+
+                        head_tail_third = os.path.split(remove_two_folders) #cestu rozdělí na cestu a poslední složku (nenechává / nakonci)
+                        remove_three_folders = head_tail_third[0] #vrátí jen cestu bez poslední složky (tzn. celkově odebrány třisložky)
+                
+                        if url.startswith("/"): #je to v root složce 
+                            final_string = parse_url.scheme + "://" + parse_url.netloc + "/" + edited_url
+                            cs_files.append(final_string)
+                        elif url.startswith("./"): #zůstává se ve stejné složce 
+                            final_string = parse_url.scheme + "://" + parse_url.netloc + parse_url.path + "/" + edited_url
+                            cs_files.append(final_string)
+                        elif url.startswith("../../"): #jde se o dvě složky výše
+                            final_string = parse_url.scheme + "://" + parse_url.netloc + remove_three_folders + "/" + edited_url
+                            cs_files.append(final_string)
+                        elif url.startswith("../"): #jde se o jednu složku  výše
+                            final_string = parse_url.scheme + "://" + parse_url.netloc + remove_two_folders + "/" + edited_url
+                            cs_files.append(final_string)
+                        else: #neobsahuje ani . ani /, zůstává se ve stejné složce 
+                            final_string = parse_url.scheme + "://" + parse_url.netloc + parse_url.path + "/" + edited_url
+                            cs_files.append(final_string)  
                     except IndexError:
                         continue
             elif url.endswith(".png") == True or url.endswith(".jpg") == True or url.endswith(".ico") == True:
                 print("bude uloženo:  " + url) #pro kontrolu, potom smazat
+                if contains_space == True:
+                    print("--obsahuje mezery, neplatná url, přeskakuji")
+                    continue
                 if contains_scheme == True:
                     img_files.append(url)
                 else:   
                     try: 
-                        img_files.append(base_url + "/" + 
-                                        PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
-                                        PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + "/" + 
-                                        edited_url)
-                        img_files.append(base_url + "/" + 
-                                        PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
-                                        edited_url)
-                        img_files.append(base_url + "/" + edited_url)
+                        dots_counter = len(url)-len(url.lstrip('.'))
+
+                        parse_url = urlparse(path_url)
+                        just_path = parse_url.path  #vrátí jen cestu (začíná /)
+                        head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a poslední složku
+                        remove_one_folder =  head_tail[0]  #vrátí jen cestu bez poslední složky (ponechává / na začátku) (tzn. celkově odebrána jedna složka)
+                
+                        head_tail_second = os.path.split(remove_one_folder) #cestu rozdělí na cestu a poslední složku (nenechává / nakonci)
+                        remove_two_folders = head_tail_second[0] #vrátí jen cestu bez poslední složky (tzn. celkově odebrány dvě složky)
+
+                        head_tail_third = os.path.split(remove_two_folders) #cestu rozdělí na cestu a poslední složku (nenechává / nakonci)
+                        remove_three_folders = head_tail_third[0] #vrátí jen cestu bez poslední složky (tzn. celkově odebrány třisložky)
+                
+                        if url.startswith("/"): #je to v root složce 
+                            final_string = parse_url.scheme + "://" + parse_url.netloc + "/" + edited_url
+                            img_files.append(final_string)
+                        elif url.startswith("./"): #zůstává se ve stejné složce 
+                            final_string = parse_url.scheme + "://" + parse_url.netloc + parse_url.path + "/" + edited_url
+                            img_files.append(final_string)
+                        elif url.startswith("../../"): #jde se o dvě složky výše
+                            final_string = parse_url.scheme + "://" + parse_url.netloc + remove_three_folders + "/" + edited_url
+                            img_files.append(final_string)
+                        elif url.startswith("../"): #jde se o jednu složku  výše
+                            final_string = parse_url.scheme + "://" + parse_url.netloc + remove_two_folders + "/" + edited_url
+                            img_files.append(final_string)
+                        else: #neobsahuje ani . ani /, zůstává se ve stejné složce 
+                            final_string = parse_url.scheme + "://" + parse_url.netloc + parse_url.path + "/" + edited_url
+                            img_files.append(final_string)  
                     except IndexError:
                         continue
             else:
@@ -290,20 +364,44 @@ def find_styles_images(base_url, path_url):
 
     for img in soup.find_all('img'): 
         url = img['src']
+        contains_space = " " in url
         contains_scheme = url.startswith("http")
         edited_url = url.lstrip("./") #odstraní všechny ./ vyskytující se zleva
+        if contains_space == True:
+            print("--obsahuje mezery, neplatná url, přeskakuji")
+            continue
         if contains_scheme == True:
             img_files.append(url)
         else:  
             try:  
-                img_files.append(base_url + "/" +
-                                PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
-                                PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + "/" + 
-                                edited_url)
-                img_files.append(base_url + "/" + 
-                                PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
-                                edited_url)
-                img_files.append(base_url + "/" + edited_url)
+                dots_counter = len(url)-len(url.lstrip('.'))
+
+                parse_url = urlparse(path_url)
+                just_path = parse_url.path  #vrátí jen cestu (začíná /)
+                head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a poslední složku
+                remove_one_folder =  head_tail[0]  #vrátí jen cestu bez poslední složky (ponechává / na začátku) (tzn. celkově odebrána jedna složka)
+                
+                head_tail_second = os.path.split(remove_one_folder) #cestu rozdělí na cestu a poslední složku (nenechává / nakonci)
+                remove_two_folders = head_tail_second[0] #vrátí jen cestu bez poslední složky (tzn. celkově odebrány dvě složky)
+
+                head_tail_third = os.path.split(remove_two_folders) #cestu rozdělí na cestu a poslední složku (nenechává / nakonci)
+                remove_three_folders = head_tail_third[0] #vrátí jen cestu bez poslední složky (tzn. celkově odebrány třisložky)
+                
+                if url.startswith("/"): #je to v root složce 
+                    final_string = parse_url.scheme + "://" + parse_url.netloc + "/" + edited_url
+                    img_files.append(final_string)
+                elif url.startswith("./"): #zůstává se ve stejné složce 
+                    final_string = parse_url.scheme + "://" + parse_url.netloc + parse_url.path + "/" + edited_url
+                    img_files.append(final_string)
+                elif url.startswith("../../"): #jde se o dvě složky výše
+                    final_string = parse_url.scheme + "://" + parse_url.netloc + remove_three_folders + "/" + edited_url
+                    img_files.append(final_string)
+                elif url.startswith("../"): #jde se o jednu složku  výše
+                    final_string = parse_url.scheme + "://" + parse_url.netloc + remove_two_folders + "/" + edited_url
+                    img_files.append(final_string)
+                else: #neobsahuje ani . ani /, zůstává se ve stejné složce 
+                    final_string = parse_url.scheme + "://" + parse_url.netloc + parse_url.path + "/" + edited_url
+                    img_files.append(final_string) 
             except IndexError:
                 continue
 
