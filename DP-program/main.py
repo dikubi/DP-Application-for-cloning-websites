@@ -98,9 +98,6 @@ def parse_css(css_file, base_url, path_url, line):
         else:
             try: 
                 print("---2 " + edited_url)
-                dots_counter = len(url)-len(url.lstrip('.'))
-                print("------- počet teček: " + str(dots_counter))
-
                 parse_url = urlparse(line)
                 just_path = parse_url.path  #vrátí cestu k souboru s názvem souboru (začíná /)
                 head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a název souboru
@@ -112,23 +109,25 @@ def parse_css(css_file, base_url, path_url, line):
                 head_tail_third = os.path.split(way_second) #cestu rozdělí na cestu a poslední složku (nenechává / nakonci)
                 way_third = head_tail_third[0] #vrátí jen cestu bez poslední složky (tzn. celkově odebrány dvě poslední složky)
                 
-                if dots_counter == 0: #je to v root složce .css souboru (může být ve vlastní složce)
+                if url.startswith("/"): #je to v root složce
+                    final_string = parse_url.scheme + "://" + parse_url.netloc + "/" + edited_url
+                elif url.startswith("./"): #zůstává se ve stejné složce         
+                    final_string = parse_url.scheme + "://" + parse_url.netloc + way + "/" + edited_url
+                    found_urls_css.append(final_string)
+                    print("---4 " + final_string)
+                elif url.startswith("../../"): #jde se o dvě složky výše
+                    final_string = parse_url.scheme + "://" + parse_url.netloc + way_third + "/" + edited_url
+                    found_urls_css.append(final_string)
+                    print("---6 " + final_string) 
+                elif url.startswith("../"): #jde se o jednu složku  výše   
+                    final_string = parse_url.scheme + "://" + parse_url.netloc + way_second + "/" + edited_url
+                    found_urls_css.append(final_string)
+                    print("---5 " + final_string)
+                else: #neobsahuje ani . ani /, zůstává se ve stejné složce jako css soubor
                     print("--- NULA")
                     final_string = parse_url.scheme + "://" + parse_url.netloc + way + "/" + edited_url
                     found_urls_css.append(final_string)
                     print("---3 " + final_string)
-                if dots_counter == 1: #zůstává se ve stejné složce                 
-                    final_string = parse_url.scheme + "://" + parse_url.netloc + way + "/" + edited_url
-                    found_urls_css.append(final_string)
-                    print("---4 " + final_string)
-                if dots_counter == 2: #jde se o jednu složku  výše
-                    final_string = parse_url.scheme + "://" + parse_url.netloc + way_second + "/" + edited_url
-                    found_urls_css.append(final_string)
-                    print("---5 " + final_string) 
-                if url.startswith("../../"): #jde se o dvě složky výše
-                    final_string = parse_url.scheme + "://" + parse_url.netloc + way_third + "/" + edited_url
-                    found_urls_css.append(final_string)
-                    print("---6 " + final_string) 
             except IndexError:
                 continue
     
@@ -193,6 +192,19 @@ def download_files(txt_file):
     for line in file:
         file_name = split_path(line)
         print("Stahuje se soubor: " + file_name)
+
+        # try:
+        #     opener = urllib.request.build_opener()
+        #     opener.addheaders = [('User-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36')]
+        #     urllib.request.install_opener(opener)
+        #     urllib.request.urlretrieve(line, file_name)
+        # except urllib.error.HTTPError:
+        #     print("Soubor: " + line + " je prázdný.")
+        #     continue
+        # except http.client.InvalidURL:
+        #     print("Soubor: " + line + " má neplatnou URL.")
+        #     continue
+
         try:
             urllib.request.urlretrieve(line, file_name) #stáhne obrázek
         except urllib.error.HTTPError:
@@ -234,8 +246,6 @@ def find_styles_images(base_url, path_url):
                 js_files.append(url)
             else:
                 try: 
-                    dots_counter = len(url)-len(url.lstrip('.'))
-
                     parse_url = urlparse(path_url)
                     just_path = parse_url.path  #vrátí jen cestu (začíná /)
                     head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a poslední složku
@@ -284,9 +294,7 @@ def find_styles_images(base_url, path_url):
                 if contains_scheme == True:
                     cs_files.append(url)
                 else:    
-                    try: #prochází úrovně adresy a pro každou uloží nalezený href 
-                        dots_counter = len(url)-len(url.lstrip('.'))
-
+                    try: 
                         parse_url = urlparse(path_url)
                         just_path = parse_url.path  #vrátí jen cestu (začíná /)
                         head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a poslední složku
@@ -324,8 +332,6 @@ def find_styles_images(base_url, path_url):
                     img_files.append(url)
                 else:   
                     try: 
-                        dots_counter = len(url)-len(url.lstrip('.'))
-
                         parse_url = urlparse(path_url)
                         just_path = parse_url.path  #vrátí jen cestu (začíná /)
                         head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a poslední složku
@@ -373,9 +379,7 @@ def find_styles_images(base_url, path_url):
         if contains_scheme == True:
             img_files.append(url)
         else:  
-            try:  
-                dots_counter = len(url)-len(url.lstrip('.'))
-
+            try:                 
                 parse_url = urlparse(path_url)
                 just_path = parse_url.path  #vrátí jen cestu (začíná /)
                 head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a poslední složku
@@ -409,33 +413,6 @@ def find_styles_images(base_url, path_url):
             
         img['src'] = new_src #nahradí původní src jen názvem souboru
         html = str(soup) #uloží upravený kód do soup
-
-    #HLEDÁNÍ SVG IKON V VUT.CZ
-    # for item in soup.find_all('use'):
-    #     if item.attrs.get("xlink:href"):
-    #         url = item.attrs.get("xlink:href")
-    #         contains_scheme = url.startswith("http")
-    #         contains_dot = url.startswith(".")
-    #         if contains_dot == True:
-    #             url = url[1:]
-    #         if contains_scheme == True:
-    #             img_files.append(url)
-    #         else:
-    #             try: #prochází úrovně adresy a pro každou uloží nalezený src 
-    #                 img_files.append(base_url + "/" + 
-    #                                 PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + "/" + 
-    #                                 PurePosixPath(unquote(urlparse(path_url).path)).parts[-1] + url)
-    #                 img_files.append(base_url + "/" + 
-    #                                 PurePosixPath(unquote(urlparse(path_url).path)).parts[-2] + url)
-    #                 img_files.append(base_url+url)
-    #             except IndexError:
-    #                 continue
-
-    #         new_src = split_path(url)
-            
-    #         item['xlink:href'] = new_src #nahradí původní src jen názvem souboru
-    #         html = str(soup) #uloží upravený kód do soup
-
 
     file_html_tree = create_file() 
     save_to_file(file_html_tree, soup.prettify()) #uloží získaný a upravený html kód do samostatného .html souboru
@@ -488,9 +465,12 @@ def main():
     scrape_style_files("javascript_files.txt", base_url, path_url)
 
     download_files("images.txt")
-    download_files("found_url_css.txt")
-
-
     
+    try:
+        download_files("found_url_css.txt")
+    except FileNotFoundError:
+        print("Nebyl nalezen soubor: found_url_css.text")
+
+print("Ukončeno")        
 
 main()
