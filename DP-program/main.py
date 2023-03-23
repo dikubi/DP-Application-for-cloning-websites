@@ -55,6 +55,7 @@ def create_file_style(original_path):
     file_name = split_path(original_path)
     
     print("Vytvořen soubor s jménem: " + file_name)  #pro kontrolu, potom smazat
+    
     file = open(file_name, "w", encoding="utf-8")
     return file
 
@@ -206,11 +207,14 @@ def download_files(txt_file):
         #     continue
 
         try:
-            urllib.request.urlretrieve(line, file_name) #stáhne obrázek
+            urllib.request.urlretrieve(line, file_name) #stáhne obrázek/font
         except urllib.error.HTTPError:
             print("Soubor: " + line + " je prázdný.")
             continue
         except http.client.InvalidURL:
+            print("Soubor: " + line + " má neplatnou URL.")
+            continue
+        except ValueError:
             print("Soubor: " + line + " má neplatnou URL.")
             continue
 
@@ -471,6 +475,6 @@ def main():
     except FileNotFoundError:
         print("Nebyl nalezen soubor: found_url_css.text")
 
-print("Ukončeno")        
+    print("Ukončeno")        
 
 main()
