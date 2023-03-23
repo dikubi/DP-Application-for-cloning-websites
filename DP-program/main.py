@@ -373,7 +373,11 @@ def find_styles_images(base_url, path_url):
             html = str(soup) #uloží upravený kód do soup
 
     for img in soup.find_all('img'): 
-        url = img['src']
+        try:
+            url = img['src']
+        except KeyError:
+            print("EXCEPTION: Img tag neobsahuje src")
+            continue
         contains_space = " " in url
         contains_scheme = url.startswith("http")
         edited_url = url.lstrip("./") #odstraní všechny ./ vyskytující se zleva
