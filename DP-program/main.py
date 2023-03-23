@@ -112,6 +112,8 @@ def parse_css(css_file, base_url, path_url, line):
                 
                 if url.startswith("/"): #je to v root složce
                     final_string = parse_url.scheme + "://" + parse_url.netloc + "/" + edited_url
+                    found_urls_css.append(final_string)
+                    print("---3 " + final_string)
                 elif url.startswith("./"): #zůstává se ve stejné složce         
                     final_string = parse_url.scheme + "://" + parse_url.netloc + way + "/" + edited_url
                     found_urls_css.append(final_string)
