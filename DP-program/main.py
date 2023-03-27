@@ -18,8 +18,14 @@ import cssutils
 import logging
 import http.client #pro chytání exception
 from selenium.common.exceptions import WebDriverException #pro chytání exception
+import socket
+import urllib.error
+from selenium.webdriver.chrome.options import Options
 
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+#c = Options()
+#c.add_argument("--headless")
+
+driver = webdriver.Chrome(service=Service(ChromeDriverManager().install())) # před poslední ) pak přidat ,options=c
 
 def close_file(file):
     file.close()
@@ -195,7 +201,9 @@ def download_files(txt_file):
     for line in file:
         file_name = split_path(line)
         print("Stahuje se soubor: " + file_name)
-
+        
+        #--------------------------
+        #nastavení user-agent v headeru
         # try:
         #     opener = urllib.request.build_opener()
         #     opener.addheaders = [('User-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36')]
@@ -207,9 +215,15 @@ def download_files(txt_file):
         # except http.client.InvalidURL:
         #     print("Soubor: " + line + " má neplatnou URL.")
         #     continue
+        #--------------------------
+
+        #socket.setdefaulttimeout(10)
 
         try:
-            urllib.request.urlretrieve(line, file_name) #stáhne obrázek/font
+            urllib.request.urlretrieve(line, file_name) #stáhne obrázek/font   
+        except urllib.error.URLError:
+            print("URL error: " + line)
+            continue
         except urllib.error.HTTPError:
             print("Soubor: " + line + " je prázdný.")
             continue
@@ -218,6 +232,9 @@ def download_files(txt_file):
             continue
         except ValueError:
             print("Soubor: " + line + " má neplatnou URL.")
+            continue
+        except TimeoutError:
+            print("čas vypršel, nepodařilo se stáhnout.")
             continue
 
 
@@ -446,7 +463,6 @@ def find_styles_images(base_url, path_url):
 
 
 def main():
-
     URL_input = input("Vložte URL: ")
     driver.get(URL_input) 
     time.sleep(5)
