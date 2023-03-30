@@ -136,7 +136,11 @@ def parse_css(css_file, base_url, path_url, line):
                 head_tail_third = os.path.split(way_second) #cestu rozdělí na cestu a poslední složku (nenechává / nakonci)
                 way_third = head_tail_third[0] #vrátí jen cestu bez poslední složky (tzn. celkově odebrány dvě poslední složky)
                 
-                if url.startswith("/"): #je to v root složce
+                if url.startswith("//"): #url umístěno hned za "https:"
+                    final_string = parse_url.scheme + ":" + url
+                    found_urls_css.append(final_string)
+                    print("---0 " + final_string)
+                elif url.startswith("/"): #je to v root složce
                     final_string = parse_url.scheme + "://" + parse_url.netloc + "/" + edited_url
                     found_urls_css.append(final_string)
                     print("---3 " + final_string)
@@ -156,7 +160,7 @@ def parse_css(css_file, base_url, path_url, line):
                     print("--- NULA")
                     final_string = parse_url.scheme + "://" + parse_url.netloc + way + "/" + edited_url
                     found_urls_css.append(final_string)
-                    print("---3 " + final_string)
+                    print("---7 " + final_string)
             except IndexError:
                 continue
     
@@ -293,8 +297,11 @@ def find_styles_images(base_url, path_url):
 
                     head_tail_third = os.path.split(remove_two_folders) #cestu rozdělí na cestu a poslední složku (nenechává / nakonci)
                     remove_three_folders = head_tail_third[0] #vrátí jen cestu bez poslední složky (tzn. celkově odebrány třisložky)
-                
-                    if url.startswith("/"): #je to v root složce 
+
+                    if url.startswith("//"): #url umístěno hned za "https:"
+                        final_string = parse_url.scheme + ":" + url
+                        js_files.append(final_string)
+                    elif url.startswith("/"): #je to v root složce 
                         final_string = parse_url.scheme + "://" + parse_url.netloc + "/" + edited_url
                         js_files.append(final_string)
                     elif url.startswith("./"): #zůstává se ve stejné složce 
@@ -343,7 +350,10 @@ def find_styles_images(base_url, path_url):
                         head_tail_third = os.path.split(remove_two_folders) #cestu rozdělí na cestu a poslední složku (nenechává / nakonci)
                         remove_three_folders = head_tail_third[0] #vrátí jen cestu bez poslední složky (tzn. celkově odebrány třisložky)
                 
-                        if url.startswith("/"): #je to v root složce 
+                        if url.startswith("//"): #url umístěno hned za "https:"
+                            final_string = parse_url.scheme + ":" + url
+                            cs_files.append(final_string)
+                        elif url.startswith("/"): #je to v root složce 
                             final_string = parse_url.scheme + "://" + parse_url.netloc + "/" + edited_url
                             cs_files.append(final_string)
                         elif url.startswith("./"): #zůstává se ve stejné složce 
@@ -380,7 +390,10 @@ def find_styles_images(base_url, path_url):
                         head_tail_third = os.path.split(remove_two_folders) #cestu rozdělí na cestu a poslední složku (nenechává / nakonci)
                         remove_three_folders = head_tail_third[0] #vrátí jen cestu bez poslední složky (tzn. celkově odebrány třisložky)
                 
-                        if url.startswith("/"): #je to v root složce 
+                        if url.startswith("//"): #url umístěno hned za "https:"
+                            final_string = parse_url.scheme + ":" + url
+                            img_files.append(final_string)
+                        elif url.startswith("/"): #je to v root složce 
                             final_string = parse_url.scheme + "://" + parse_url.netloc + "/" + edited_url
                             img_files.append(final_string)
                         elif url.startswith("./"): #zůstává se ve stejné složce 
@@ -432,7 +445,10 @@ def find_styles_images(base_url, path_url):
                 head_tail_third = os.path.split(remove_two_folders) #cestu rozdělí na cestu a poslední složku (nenechává / nakonci)
                 remove_three_folders = head_tail_third[0] #vrátí jen cestu bez poslední složky (tzn. celkově odebrány třisložky)
                 
-                if url.startswith("/"): #je to v root složce 
+                if url.startswith("//"): #url umístěno hned za "https:"
+                    final_string = parse_url.scheme + ":" + url
+                    img_files.append(final_string)
+                elif url.startswith("/"): #je to v root složce 
                     final_string = parse_url.scheme + "://" + parse_url.netloc + "/" + edited_url
                     img_files.append(final_string)
                 elif url.startswith("./"): #zůstává se ve stejné složce 
@@ -563,6 +579,7 @@ def main():
     except FileNotFoundError:
         print("Nebyl nalezen soubor: found_url_css.text")
 
-    print("Ukončeno")        
+    print("Ukončeno")
+
 
 main()
