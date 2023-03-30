@@ -21,14 +21,27 @@ from selenium.common.exceptions import WebDriverException #pro chytání excepti
 import socket
 import urllib.error
 from selenium.webdriver.chrome.options import Options
+from os import system, name
 
-#c = Options()
-#c.add_argument("--headless")
+o = Options()
+#o.add_argument("--headless")
+o.add_argument('log-level=3') #potlačení výpisu webdriveru do konzole
 
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install())) # před poslední ) pak přidat ,options=c
+driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=o) # před poslední ) pak přidat ,options=c
+
+def clear_cli(): 
+    # pro windows 
+    if name == 'nt': 
+        _ = system('cls') 
+    # pro mac a linux 
+    else: 
+        _ = system('clear')
 
 def close_file(file):
-    file.close()
+    try:
+        file.close()
+    except AttributeError:
+        print("Attribute Error.")
 
 def create_file():
     file_name = "index.html"
@@ -60,13 +73,20 @@ def create_file_style(original_path):
     
     file_name = split_path(original_path)
     
-    print("Vytvořen soubor s jménem: " + file_name)  #pro kontrolu, potom smazat
+    print("Vytváří se soubor s jménem: " + file_name)  #pro kontrolu, potom smazat
     
-    file = open(file_name, "w", encoding="utf-8")
-    return file
+    try:
+        file = open(file_name, "w", encoding="utf-8")
+        return file
+    except FileNotFoundError:
+        print("Soubor: " + file_name + "nemohl být vytvořen.")
+
 
 def save_to_file(file, input_to_file):
-    file.write(input_to_file)
+    try:
+        file.write(input_to_file)
+    except AttributeError:
+        print("Soubor nemohl být zapsán.")
 
 def parse_css(css_file, base_url, path_url, line):
     """
@@ -202,25 +222,19 @@ def download_files(txt_file):
         file_name = split_path(line)
         print("Stahuje se soubor: " + file_name)
         
-        #--------------------------
-        #nastavení user-agent v headeru
-        # try:
-        #     opener = urllib.request.build_opener()
-        #     opener.addheaders = [('User-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36')]
-        #     urllib.request.install_opener(opener)
-        #     urllib.request.urlretrieve(line, file_name)
-        # except urllib.error.HTTPError:
-        #     print("Soubor: " + line + " je prázdný.")
-        #     continue
-        # except http.client.InvalidURL:
-        #     print("Soubor: " + line + " má neplatnou URL.")
-        #     continue
-        #--------------------------
-
         #socket.setdefaulttimeout(10)
 
         try:
-            urllib.request.urlretrieve(line, file_name) #stáhne obrázek/font   
+            #--------------------------
+            #nastavení user-agent v headeru
+            opener = urllib.request.build_opener()
+            opener.addheaders = [('User-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36')]
+            urllib.request.install_opener(opener)
+            urllib.request.urlretrieve(line, file_name)
+            #--------------------------
+
+            #varianta bez nastavení user-agent v headeru
+            #urllib.request.urlretrieve(line, file_name) #stáhne obrázek/font  
         except urllib.error.URLError:
             print("URL error: " + line)
             continue
@@ -461,10 +475,62 @@ def find_styles_images(base_url, path_url):
         for img_file in img_files:
             print(img_file, file=f) 
 
+def add_cookie():
+    name = input("Vložte cookie name: ")
+    value = input("Vložte cookie value: ")
+
+    driver.add_cookie({"name" : name, "value" : value}) # formát je: driver.add_cookie({"name" : "_pk_ref.50.6f9c", "value" : "%5B%22%22%2C%22%22%2C1680182860%2C%22https%3A%2F%2Fwww.mojeid.cz%2F%22%5D"})
+
+    print("Vložit další cookies? y/n\n")
+    possible_choice = ["y", "n"]
+    choice = input(">> ")
+    
+    while not choice in possible_choice:
+        print("Neznámý příkaz, zadejte znovu.")
+        choice = input(">> ")
+    if choice == "y":
+        add_cookie()
+    elif choice == "n":
+        print("Cookies byly uloženy.")
+
+def print_menu():
+    print("     -- MENU --\n")
+    print("Zvolte jednu z možností:\n")
+    print("1) Klonovat stránku")
+    print("2) Klonovat stránku s vložením cookies")
+    print("3) Konec\n")
+
+def quit_program():
+    print("Ukončuji se.")
+    time.sleep(2.0)
+    quit()
 
 def main():
-    URL_input = input("Vložte URL: ")
-    driver.get(URL_input) 
+    clear_cli()
+    print_menu()
+    choice = input(">> ")
+
+    if choice == "1":
+        clear_cli()
+        print("1) Klonovat stránku")
+        print("-" * 30 + "\n")
+        URL_input = input("Vložte URL: ")
+        driver.get(URL_input)
+    elif choice == "2":
+        clear_cli()
+        print("1) Klonovat stránku s vložením cookies\n")
+        print("-" * 30 + "\n")
+        URL_input = input("Vložte URL: ")
+        driver.get(URL_input)
+        add_cookie()  
+        driver.refresh() 
+    elif choice == "3":
+        quit_program()
+    else:
+        print("Neznámý příkaz, zadejte znovu.")    
+        time.sleep(2.0)
+        main()
+
     time.sleep(5)
 
     #odstranění path a parametrů za doménou stránky
