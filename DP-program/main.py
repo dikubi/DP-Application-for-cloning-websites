@@ -18,7 +18,6 @@ import cssutils
 import logging
 import http.client #pro chytání exception
 from selenium.common.exceptions import WebDriverException #pro chytání exception
-import socket
 import urllib.error
 from selenium.webdriver.chrome.options import Options
 from os import system, name
@@ -27,7 +26,7 @@ o = Options()
 #o.add_argument("--headless")
 o.add_argument('log-level=3') #potlačení výpisu webdriveru do konzole
 
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=o) # před poslední ) pak přidat ,options=c
+driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=o) 
 
 def clear_cli(): 
     # pro windows 
@@ -88,14 +87,12 @@ def save_to_file(file, input_to_file):
     except AttributeError:
         print("Soubor nemohl být zapsán.")
 
-def parse_css(css_file, base_url, path_url, line):
+def parse_css(css_file, line):
     """
     Projde vytvořený .css soubor a pokud v něm jsou nějaké url odkazy,
     uloží je do listu found_urls_css a do found_url_css.txt pod absolutní cestou.
     
     :css_file: uložený css soubor
-    :base_url: url input oseknutý na scheme + domain
-    :path_url: url stránky od uživatele bez úprav
     :line: celá url k css, ze kterého extrahuji další url - nutné pro sestavení
     absolutní url z relativní, která je uvedena v daném uloženém css souboru.
     """
@@ -120,11 +117,11 @@ def parse_css(css_file, base_url, path_url, line):
             print("--to data image, přeskakuji")
             continue
         if contains_scheme == True:
-            print("---1 " + url)
+            #print("---1 " + url)
             found_urls_css.append(url)
         else:
             try: 
-                print("---2 " + edited_url)
+                #print("---2 " + edited_url)
                 parse_url = urlparse(line)
                 just_path = parse_url.path  #vrátí cestu k souboru s názvem souboru (začíná /)
                 head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a název souboru
@@ -139,28 +136,27 @@ def parse_css(css_file, base_url, path_url, line):
                 if url.startswith("//"): #url umístěno hned za "https:"
                     final_string = parse_url.scheme + ":" + url
                     found_urls_css.append(final_string)
-                    print("---0 " + final_string)
+                    print("--nalezen: " + final_string)
                 elif url.startswith("/"): #je to v root složce
                     final_string = parse_url.scheme + "://" + parse_url.netloc + "/" + edited_url
                     found_urls_css.append(final_string)
-                    print("---3 " + final_string)
+                    print("--nalezen: " + final_string)
                 elif url.startswith("./"): #zůstává se ve stejné složce         
                     final_string = parse_url.scheme + "://" + parse_url.netloc + way + "/" + edited_url
                     found_urls_css.append(final_string)
-                    print("---4 " + final_string)
+                    print("--nalezen: " + final_string)
                 elif url.startswith("../../"): #jde se o dvě složky výše
                     final_string = parse_url.scheme + "://" + parse_url.netloc + way_third + "/" + edited_url
                     found_urls_css.append(final_string)
-                    print("---6 " + final_string) 
+                    print("--nalezen: " + final_string) 
                 elif url.startswith("../"): #jde se o jednu složku  výše   
                     final_string = parse_url.scheme + "://" + parse_url.netloc + way_second + "/" + edited_url
                     found_urls_css.append(final_string)
-                    print("---5 " + final_string)
+                    print("--nalezen: " + final_string)
                 else: #neobsahuje ani . ani /, zůstává se ve stejné složce jako css soubor
-                    print("--- NULA")
                     final_string = parse_url.scheme + "://" + parse_url.netloc + way + "/" + edited_url
                     found_urls_css.append(final_string)
-                    print("---7 " + final_string)
+                    print("--nalezen: " + final_string)
             except IndexError:
                 continue
     
@@ -173,7 +169,7 @@ def parse_css(css_file, base_url, path_url, line):
         f.write(sheet.cssText) #zapíše do něj aktualizované css
         print("zapsáno")
 
-def scrape_style_files(file_with_urls_found, base_url, path_url):
+def scrape_style_files(file_with_urls_found):
     """
     Projde odkazy na css/js styly v .txt dokumentech a vytáhne z nich css/js kód.
     Poté zavolá create_file_style, která vytvoří .css / .js souboru pro každý soubor
@@ -183,7 +179,7 @@ def scrape_style_files(file_with_urls_found, base_url, path_url):
 
     file = open(file_with_urls_found, "r") #otevírá se css_files.txt, pak javascript_files.txt
     for line in file:
-        print("uložený odkaz: " + line) #pro kontrolu, potom smazat
+        print("Uložený odkaz: " + line) #pro kontrolu, potom smazat
         try:
             driver.get(line) 
             time.sleep(1)
@@ -210,7 +206,7 @@ def scrape_style_files(file_with_urls_found, base_url, path_url):
         
         if file_name.endswith(".css"):
             print("---Volá se parse_css---")
-            parse_css(file_name, base_url, path_url, line) #volá se fce pro získání urls z uloženého css souboru
+            parse_css(file_name, line) #volá se fce pro získání urls z uloženého css souboru
         #elif line.endswith(".js"):
         #   zde se bude volat fce pro získání url z uloženého JS souboru
 
@@ -252,18 +248,17 @@ def download_files(txt_file):
             print("Soubor: " + line + " má neplatnou URL.")
             continue
         except TimeoutError:
-            print("čas vypršel, nepodařilo se stáhnout.")
+            print("Čas vypršel, nepodařilo se stáhnout.")
             continue
 
 
-def find_styles_images(base_url, path_url):
+def find_styles_images(path_url):
     """
     Najde v html stránky (soup) všechny odkazy na css a js styly a obrázky, 
     uloží je do listů a tyto listy pak uloží do souborů javascript_files.txt,
     css_files.txt, images.txt.
     Zaroveň upraví jejich src a href v soup a uloží do index.html.
 
-    :base_url: scheme + netloc
     :path_url: scheme + netloc + path = input uživatele; to, z čeho beru index.html
     """
 
@@ -281,7 +276,7 @@ def find_styles_images(base_url, path_url):
             contains_scheme = url.startswith("http")
             edited_url = url.lstrip("./") #odstraní všechny ./ vyskytující se zleva
             if contains_space == True:
-                print("--obsahuje mezery, neplatná url, přeskakuji")
+                print("Soubor obsahuje mezery, neplatná url, přeskakuji")
                 continue
             if contains_scheme == True:
                 js_files.append(url)
@@ -333,7 +328,7 @@ def find_styles_images(base_url, path_url):
             if (url.__contains__("css")):
                 print("bude uloženo:  " + url) #pro kontrolu, potom smazat
                 if contains_space == True:
-                    print("--obsahuje mezery, neplatná url, přeskakuji")
+                    print("Soubor obsahuje mezery, neplatná url, přeskakuji")
                     continue
                 if contains_scheme == True:
                     cs_files.append(url)
@@ -373,7 +368,7 @@ def find_styles_images(base_url, path_url):
             elif url.endswith(".png") == True or url.endswith(".jpg") == True or url.endswith(".ico") == True:
                 print("bude uloženo:  " + url) #pro kontrolu, potom smazat
                 if contains_space == True:
-                    print("--obsahuje mezery, neplatná url, přeskakuji")
+                    print("Soubor obsahuje mezery, neplatná url, přeskakuji")
                     continue
                 if contains_scheme == True:
                     img_files.append(url)
@@ -411,7 +406,7 @@ def find_styles_images(base_url, path_url):
                     except IndexError:
                         continue
             else:
-                print("nebude uloženo:  " + url) #pro kontrolu, potom smazat
+                print("Nebude uloženo:  " + url) #pro kontrolu, potom smazat
 
             new_src = split_path(url)
 
@@ -428,7 +423,7 @@ def find_styles_images(base_url, path_url):
         contains_scheme = url.startswith("http")
         edited_url = url.lstrip("./") #odstraní všechny ./ vyskytující se zleva
         if contains_space == True:
-            print("--obsahuje mezery, neplatná url, přeskakuji")
+            print("Soubor obsahuje mezery, neplatná url, přeskakuji")
             continue
         if contains_scheme == True:
             img_files.append(url)
@@ -510,6 +505,7 @@ def add_cookie():
         print("Cookies byly uloženy.")
 
 def print_menu():
+    clear_cli()
     print("     -- MENU --\n")
     print("Zvolte jednu z možností:\n")
     print("1) Klonovat stránku")
@@ -522,7 +518,6 @@ def quit_program():
     quit()
 
 def main():
-    clear_cli()
     print_menu()
     choice = input(">> ")
 
@@ -531,12 +526,20 @@ def main():
         print("1) Klonovat stránku")
         print("-" * 30 + "\n")
         URL_input = input("Vložte URL: ")
+        if " " in URL_input:
+            print("URL je neplatná, opakujte akci.")
+            time.sleep(2.0)
+            main()
         driver.get(URL_input)
     elif choice == "2":
         clear_cli()
         print("1) Klonovat stránku s vložením cookies\n")
         print("-" * 30 + "\n")
         URL_input = input("Vložte URL: ")
+        if " " in URL_input:
+            print("URL je neplatná, opakujte akci.")
+            time.sleep(2.0)
+            main()
         driver.get(URL_input)
         add_cookie()  
         driver.refresh() 
@@ -566,11 +569,11 @@ def main():
     original_html.write(soup.prettify())
     original_html.close
 
-    find_styles_images(base_url, path_url)
+    find_styles_images(path_url)
     
     print("scraping css") #pro kontrolu, potom smazat
-    scrape_style_files("css_files.txt", base_url, path_url)
-    scrape_style_files("javascript_files.txt", base_url, path_url)
+    scrape_style_files("css_files.txt")
+    scrape_style_files("javascript_files.txt")
 
     download_files("images.txt")
     
@@ -580,6 +583,8 @@ def main():
         print("Nebyl nalezen soubor: found_url_css.text")
 
     print("Ukončeno")
+    time.sleep(2)
+    quit()
 
 
 main()
