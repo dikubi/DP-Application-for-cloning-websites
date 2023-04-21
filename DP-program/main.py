@@ -109,7 +109,7 @@ def parse_css(css_file, line):
         contains_space = " " in url
         contains_scheme = url.startswith("http")
         edited_url = url.lstrip("./") #odstraní všechny ./ vyskytující se zleva
-        print("--editované url: " + edited_url)
+        #print("--editované url: " + edited_url)
         if contains_space == True:
             print("--obsahuje mezery, neplatná url, přeskakuji")
             continue
@@ -167,7 +167,7 @@ def parse_css(css_file, line):
     cssutils.replaceUrls(sheet, split_path) #nahradí všechny výskyty url výstupem fce split_path
     with open (css_file, "wb") as f: #otevře daný css soubor
         f.write(sheet.cssText) #zapíše do něj aktualizované css
-        print("zapsáno")
+        print("Zapsáno")
 
 def scrape_style_files(file_with_urls_found):
     """
@@ -236,7 +236,7 @@ def download_files(txt_file):
             #varianta bez nastavení user-agent v headeru
             #urllib.request.urlretrieve(line, file_name) #stáhne obrázek/font  
         except urllib.error.URLError:
-            print("URL error: " + line)
+            #print("URL error: " + line)
             continue
         except urllib.error.HTTPError:
             print("Soubor: " + line + " je prázdný.")
@@ -526,21 +526,31 @@ def main():
         print("1) Klonovat stránku")
         print("-" * 30 + "\n")
         URL_input = input("Vložte URL: ")
-        if " " in URL_input:
+        if " " in URL_input or URL_input.startswith("http") == False:
             print("URL je neplatná, opakujte akci.")
             time.sleep(2.0)
             main()
-        driver.get(URL_input)
+        try:
+            driver.get(URL_input)
+        except WebDriverException:
+            print("URL je nedostupná/chybná. Opakujte akci")
+            time.sleep(3.0)
+            main()
     elif choice == "2":
         clear_cli()
         print("1) Klonovat stránku s vložením cookies\n")
         print("-" * 30 + "\n")
         URL_input = input("Vložte URL: ")
-        if " " in URL_input:
+        if " " in URL_input or URL_input.startswith("http") == False:
             print("URL je neplatná, opakujte akci.")
             time.sleep(2.0)
             main()
-        driver.get(URL_input)
+        try:
+            driver.get(URL_input)
+        except WebDriverException:
+            print("URL je nedostupná/chybná. Opakujte akci")
+            time.sleep(3.0)
+            main()
         add_cookie()  
         driver.refresh() 
     elif choice == "3":
