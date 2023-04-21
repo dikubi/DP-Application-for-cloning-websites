@@ -526,7 +526,7 @@ def main():
         print("1) Klonovat stránku")
         print("-" * 30 + "\n")
         URL_input = input("Vložte URL: ")
-        if " " in URL_input or URL_input.startswith("http") == False:
+        if " " in URL_input:
             print("URL je neplatná, opakujte akci.")
             time.sleep(2.0)
             main()
@@ -541,7 +541,7 @@ def main():
         print("1) Klonovat stránku s vložením cookies\n")
         print("-" * 30 + "\n")
         URL_input = input("Vložte URL: ")
-        if " " in URL_input or URL_input.startswith("http") == False:
+        if " " in URL_input:
             print("URL je neplatná, opakujte akci.")
             time.sleep(2.0)
             main()
