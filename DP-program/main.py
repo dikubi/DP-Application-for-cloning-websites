@@ -1,19 +1,13 @@
-import sys
-import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
 import time
-import webbrowser
 from selenium.webdriver.chrome.options import Options
 from urllib.parse import urlparse
 import urllib.request
 import os
-import re
-from os.path import basename, splitext
-from urllib.parse import unquote, urlparse
-from pathlib import PurePosixPath
+from urllib.parse import urlparse
 import cssutils
 import logging
 import http.client #pro chytání exception
@@ -23,7 +17,7 @@ from selenium.webdriver.chrome.options import Options
 from os import system, name
 
 o = Options()
-#o.add_argument("--headless")
+o.add_argument("--headless")
 o.add_argument('log-level=3') #potlačení výpisu webdriveru do konzole
 
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=o) 
@@ -72,20 +66,18 @@ def create_file_style(original_path):
     
     file_name = split_path(original_path)
     
-    print("Vytváří se soubor s jménem: " + file_name)  #pro kontrolu, potom smazat
-    
     try:
         file = open(file_name, "w", encoding="utf-8")
         return file
     except FileNotFoundError:
-        print("Soubor: " + file_name + "nemohl být vytvořen.")
+        print("Soubor: " + file_name + "nemohl být vytvořen")
 
 
 def save_to_file(file, input_to_file):
     try:
         file.write(input_to_file)
     except AttributeError:
-        print("Soubor nemohl být zapsán.")
+        print("Soubor nemohl být zapsán")
 
 def parse_css(css_file, line):
     """
@@ -105,23 +97,20 @@ def parse_css(css_file, line):
     urls = cssutils.getUrls(sheet) #nalezení parametrů url
 
     for url in urls:
-        print("--nalezené url:  " + url)
+        print("Nalezené url:  " + url)
         contains_space = " " in url
         contains_scheme = url.startswith("http")
         edited_url = url.lstrip("./") #odstraní všechny ./ vyskytující se zleva
-        #print("--editované url: " + edited_url)
         if contains_space == True:
-            print("--obsahuje mezery, neplatná url, přeskakuji")
+            print("Odkaz obsahuje mezery, neplatná URL: " + url)
             continue
         if url.startswith("data:image") == True:
-            print("--to data image, přeskakuji")
+            print("Formát data:image, přeskakuji")
             continue
         if contains_scheme == True:
-            #print("---1 " + url)
             found_urls_css.append(url)
         else:
             try: 
-                #print("---2 " + edited_url)
                 parse_url = urlparse(line)
                 just_path = parse_url.path  #vrátí cestu k souboru s názvem souboru (začíná /)
                 head_tail = os.path.split(just_path)  #rozdělí cestu na cestu a název souboru
@@ -136,27 +125,27 @@ def parse_css(css_file, line):
                 if url.startswith("//"): #url umístěno hned za "https:"
                     final_string = parse_url.scheme + ":" + url
                     found_urls_css.append(final_string)
-                    print("--nalezen: " + final_string)
+                    print("Uloženo: " + final_string)
                 elif url.startswith("/"): #je to v root složce
                     final_string = parse_url.scheme + "://" + parse_url.netloc + "/" + edited_url
                     found_urls_css.append(final_string)
-                    print("--nalezen: " + final_string)
+                    print("Uloženo: " + final_string)
                 elif url.startswith("./"): #zůstává se ve stejné složce         
                     final_string = parse_url.scheme + "://" + parse_url.netloc + way + "/" + edited_url
                     found_urls_css.append(final_string)
-                    print("--nalezen: " + final_string)
+                    print("Uloženo: " + final_string)
                 elif url.startswith("../../"): #jde se o dvě složky výše
                     final_string = parse_url.scheme + "://" + parse_url.netloc + way_third + "/" + edited_url
                     found_urls_css.append(final_string)
-                    print("--nalezen: " + final_string) 
+                    print("Uloženo: " + final_string) 
                 elif url.startswith("../"): #jde se o jednu složku  výše   
                     final_string = parse_url.scheme + "://" + parse_url.netloc + way_second + "/" + edited_url
                     found_urls_css.append(final_string)
-                    print("--nalezen: " + final_string)
+                    print("Uloženo: " + final_string)
                 else: #neobsahuje ani . ani /, zůstává se ve stejné složce jako css soubor
                     final_string = parse_url.scheme + "://" + parse_url.netloc + way + "/" + edited_url
                     found_urls_css.append(final_string)
-                    print("--nalezen: " + final_string)
+                    print("Uloženo: " + final_string)
             except IndexError:
                 continue
     
@@ -179,12 +168,11 @@ def scrape_style_files(file_with_urls_found):
 
     file = open(file_with_urls_found, "r") #otevírá se css_files.txt, pak javascript_files.txt
     for line in file:
-        print("Uložený odkaz: " + line) #pro kontrolu, potom smazat
         try:
             driver.get(line) 
             time.sleep(1)
         except WebDriverException:
-            print("Odkaz: " + line + " je nedostupný/chybný.")
+            print("Odkaz: " + line + " je nedostupný/chybný")
             continue
 
         html = driver.page_source 
@@ -195,7 +183,7 @@ def scrape_style_files(file_with_urls_found):
         try:
             scraped_code = pre.text #získání obsahu tagu pre, pokud není prázdný
         except AttributeError:
-            print("Soubor: " + line + " je prázdný.")
+            print("Soubor: " + line + " je prázdný")
             continue
 
         file_style = create_file_style(line) #line je předáno pro vytvoření správného názvu souboru
@@ -207,9 +195,6 @@ def scrape_style_files(file_with_urls_found):
         if file_name.endswith(".css"):
             print("---Volá se parse_css---")
             parse_css(file_name, line) #volá se fce pro získání urls z uloženého css souboru
-        #elif line.endswith(".js"):
-        #   zde se bude volat fce pro získání url z uloženého JS souboru
-
 
 def download_files(txt_file):
     """
@@ -221,8 +206,6 @@ def download_files(txt_file):
     for line in file:
         file_name = split_path(line)
         print("Stahuje se soubor: " + file_name)
-        
-        #socket.setdefaulttimeout(10)
 
         try:
             #--------------------------
@@ -233,22 +216,16 @@ def download_files(txt_file):
             urllib.request.urlretrieve(line, file_name)
             #--------------------------
 
-            #varianta bez nastavení user-agent v headeru
-            #urllib.request.urlretrieve(line, file_name) #stáhne obrázek/font  
         except urllib.error.URLError:
-            #print("URL error: " + line)
-            continue
-        except urllib.error.HTTPError:
-            print("Soubor: " + line + " je prázdný.")
             continue
         except http.client.InvalidURL:
-            print("Soubor: " + line + " má neplatnou URL.")
+            print("Soubor: " + line + " má neplatnou URL")
             continue
         except ValueError:
-            print("Soubor: " + line + " má neplatnou URL.")
+            print("Soubor: " + line + " má neplatnou URL")
             continue
         except TimeoutError:
-            print("Čas vypršel, nepodařilo se stáhnout.")
+            print("Čas vypršel, nepodařilo se stáhnout")
             continue
 
 
@@ -276,7 +253,7 @@ def find_styles_images(path_url):
             contains_scheme = url.startswith("http")
             edited_url = url.lstrip("./") #odstraní všechny ./ vyskytující se zleva
             if contains_space == True:
-                print("Soubor obsahuje mezery, neplatná url, přeskakuji")
+                print("Odkaz obsahuje mezery, neplatná URL: " + url)
                 continue
             if contains_scheme == True:
                 js_files.append(url)
@@ -296,21 +273,27 @@ def find_styles_images(path_url):
                     if url.startswith("//"): #url umístěno hned za "https:"
                         final_string = parse_url.scheme + ":" + url
                         js_files.append(final_string)
+                        print("Uloženo: " + final_string)
                     elif url.startswith("/"): #je to v root složce 
                         final_string = parse_url.scheme + "://" + parse_url.netloc + "/" + edited_url
                         js_files.append(final_string)
+                        print("Uloženo: " + final_string)
                     elif url.startswith("./"): #zůstává se ve stejné složce 
                         final_string = parse_url.scheme + "://" + parse_url.netloc + parse_url.path + "/" + edited_url
                         js_files.append(final_string)
+                        print("Uloženo: " + final_string)
                     elif url.startswith("../../"): #jde se o dvě složky výše
                         final_string = parse_url.scheme + "://" + parse_url.netloc + remove_three_folders + "/" + edited_url
                         js_files.append(final_string)
+                        print("Uloženo: " + final_string)
                     elif url.startswith("../"): #jde se o jednu složku  výše
                         final_string = parse_url.scheme + "://" + parse_url.netloc + remove_two_folders + "/" + edited_url
                         js_files.append(final_string)
+                        print("Uloženo: " + final_string)
                     else: #neobsahuje ani . ani /, zůstává se ve stejné složce 
                         final_string = parse_url.scheme + "://" + parse_url.netloc + parse_url.path + "/" + edited_url
-                        js_files.append(final_string)        
+                        js_files.append(final_string)    
+                        print("Uloženo: " + final_string)    
                 except IndexError:
                     continue
 
@@ -326,9 +309,8 @@ def find_styles_images(path_url):
             contains_scheme = url.startswith("http")
             edited_url = url.lstrip("./") #odstraní všechny ./ vyskytující se zleva
             if (url.__contains__("css")):
-                print("bude uloženo:  " + url) #pro kontrolu, potom smazat
                 if contains_space == True:
-                    print("Soubor obsahuje mezery, neplatná url, přeskakuji")
+                    print("Odkaz obsahuje mezery, neplatná URL: " + url)
                     continue
                 if contains_scheme == True:
                     cs_files.append(url)
@@ -348,27 +330,32 @@ def find_styles_images(path_url):
                         if url.startswith("//"): #url umístěno hned za "https:"
                             final_string = parse_url.scheme + ":" + url
                             cs_files.append(final_string)
+                            print("Uloženo: " + final_string)
                         elif url.startswith("/"): #je to v root složce 
                             final_string = parse_url.scheme + "://" + parse_url.netloc + "/" + edited_url
                             cs_files.append(final_string)
+                            print("Uloženo: " + final_string)
                         elif url.startswith("./"): #zůstává se ve stejné složce 
                             final_string = parse_url.scheme + "://" + parse_url.netloc + parse_url.path + "/" + edited_url
                             cs_files.append(final_string)
+                            print("Uloženo: " + final_string)
                         elif url.startswith("../../"): #jde se o dvě složky výše
                             final_string = parse_url.scheme + "://" + parse_url.netloc + remove_three_folders + "/" + edited_url
                             cs_files.append(final_string)
+                            print("Uloženo: " + final_string)
                         elif url.startswith("../"): #jde se o jednu složku  výše
                             final_string = parse_url.scheme + "://" + parse_url.netloc + remove_two_folders + "/" + edited_url
                             cs_files.append(final_string)
+                            print("Uloženo: " + final_string)
                         else: #neobsahuje ani . ani /, zůstává se ve stejné složce 
                             final_string = parse_url.scheme + "://" + parse_url.netloc + parse_url.path + "/" + edited_url
                             cs_files.append(final_string)  
+                            print("Uloženo: " + final_string)
                     except IndexError:
                         continue
             elif url.endswith(".png") == True or url.endswith(".jpg") == True or url.endswith(".ico") == True:
-                print("bude uloženo:  " + url) #pro kontrolu, potom smazat
                 if contains_space == True:
-                    print("Soubor obsahuje mezery, neplatná url, přeskakuji")
+                    print("Odkaz obsahuje mezery, neplatná URL: " + url)
                     continue
                 if contains_scheme == True:
                     img_files.append(url)
@@ -388,25 +375,31 @@ def find_styles_images(path_url):
                         if url.startswith("//"): #url umístěno hned za "https:"
                             final_string = parse_url.scheme + ":" + url
                             img_files.append(final_string)
+                            print("Uloženo: " + final_string)
                         elif url.startswith("/"): #je to v root složce 
                             final_string = parse_url.scheme + "://" + parse_url.netloc + "/" + edited_url
                             img_files.append(final_string)
+                            print("Uloženo: " + final_string)
                         elif url.startswith("./"): #zůstává se ve stejné složce 
                             final_string = parse_url.scheme + "://" + parse_url.netloc + parse_url.path + "/" + edited_url
                             img_files.append(final_string)
+                            print("Uloženo: " + final_string)
                         elif url.startswith("../../"): #jde se o dvě složky výše
                             final_string = parse_url.scheme + "://" + parse_url.netloc + remove_three_folders + "/" + edited_url
                             img_files.append(final_string)
+                            print("Uloženo: " + final_string)
                         elif url.startswith("../"): #jde se o jednu složku  výše
                             final_string = parse_url.scheme + "://" + parse_url.netloc + remove_two_folders + "/" + edited_url
                             img_files.append(final_string)
+                            print("Uloženo: " + final_string)
                         else: #neobsahuje ani . ani /, zůstává se ve stejné složce 
                             final_string = parse_url.scheme + "://" + parse_url.netloc + parse_url.path + "/" + edited_url
                             img_files.append(final_string)  
+                            print("Uloženo: " + final_string)
                     except IndexError:
                         continue
             else:
-                print("Nebude uloženo:  " + url) #pro kontrolu, potom smazat
+                print("Nebude uloženo:  " + url)
 
             new_src = split_path(url)
 
@@ -423,7 +416,7 @@ def find_styles_images(path_url):
         contains_scheme = url.startswith("http")
         edited_url = url.lstrip("./") #odstraní všechny ./ vyskytující se zleva
         if contains_space == True:
-            print("Soubor obsahuje mezery, neplatná url, přeskakuji")
+            print("Odkaz obsahuje mezery, neplatná URL: " + url)
             continue
         if contains_scheme == True:
             img_files.append(url)
@@ -443,21 +436,27 @@ def find_styles_images(path_url):
                 if url.startswith("//"): #url umístěno hned za "https:"
                     final_string = parse_url.scheme + ":" + url
                     img_files.append(final_string)
+                    print("Uloženo: " + final_string)
                 elif url.startswith("/"): #je to v root složce 
                     final_string = parse_url.scheme + "://" + parse_url.netloc + "/" + edited_url
                     img_files.append(final_string)
+                    print("Uloženo: " + final_string)
                 elif url.startswith("./"): #zůstává se ve stejné složce 
                     final_string = parse_url.scheme + "://" + parse_url.netloc + parse_url.path + "/" + edited_url
                     img_files.append(final_string)
+                    print("Uloženo: " + final_string)
                 elif url.startswith("../../"): #jde se o dvě složky výše
                     final_string = parse_url.scheme + "://" + parse_url.netloc + remove_three_folders + "/" + edited_url
                     img_files.append(final_string)
+                    print("Uloženo: " + final_string)
                 elif url.startswith("../"): #jde se o jednu složku  výše
                     final_string = parse_url.scheme + "://" + parse_url.netloc + remove_two_folders + "/" + edited_url
                     img_files.append(final_string)
+                    print("Uloženo: " + final_string)
                 else: #neobsahuje ani . ani /, zůstává se ve stejné složce 
                     final_string = parse_url.scheme + "://" + parse_url.netloc + parse_url.path + "/" + edited_url
                     img_files.append(final_string) 
+                    print("Uloženo: " + final_string)
             except IndexError:
                 continue
 
@@ -469,9 +468,6 @@ def find_styles_images(path_url):
     file_html_tree = create_file() 
     save_to_file(file_html_tree, soup.prettify()) #uloží získaný a upravený html kód do samostatného .html souboru
     close_file(file_html_tree)
-
-    print(f"Celkem {len(js_files)} javascript souborů nalezeno") #pro kontrolu, potom smazat
-    print(f"Celkem {len(cs_files)} CSS souborů nalezeno") #pro kontrolu, potom smazat
     
     #nalezené odkazy, které byly uloženy do listů, se uloží do .txt souborů
     with open("javascript_files.txt", "a") as f:
@@ -556,7 +552,7 @@ def main():
     elif choice == "3":
         quit_program()
     else:
-        print("Neznámý příkaz, zadejte znovu.")    
+        print("Neznámý příkaz, zadejte znovu")    
         time.sleep(2.0)
         main()
 
@@ -564,14 +560,10 @@ def main():
 
     #odstranění path a parametrů za doménou stránky
     parse_url = urlparse(URL_input)
-    print(parse_url) #pro kontrolu, potom smazat
-    base_url = parse_url.scheme + "://" + parse_url.netloc
-    print("Base url: " + base_url) #pro kontrolu, potom smazat
     
     # doména stránky + path část
     path_url = parse_url.scheme + "://" + parse_url.netloc + parse_url.path
-    print("URL with path: " + path_url) #pro kontrolu, potom smazat
-
+    
     html = driver.page_source 
     soup = BeautifulSoup(html, "html5lib")
 
@@ -581,7 +573,6 @@ def main():
 
     find_styles_images(path_url)
     
-    print("scraping css") #pro kontrolu, potom smazat
     scrape_style_files("css_files.txt")
     scrape_style_files("javascript_files.txt")
 
