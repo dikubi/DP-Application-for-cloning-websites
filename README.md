@@ -19,6 +19,12 @@ pathspec
 cssutils
 ```
 
+Veškeré potřebné knihovny a moduly je možné nainstalovat příkazem:
+
+```
+python setup.py install
+```
+
 ## Spuštění
 
 Aplikace se spouští z příkazové řádky ze složky obsahující hlavní soubor příkazem:
