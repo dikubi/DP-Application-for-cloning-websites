@@ -29,12 +29,15 @@ main.py
 
 Po spuštění se zobrazí menu s možnostmi klonovat stránku přímo a nebo s vložením cookies.
 
+### Klonovat stránku
+
 Pro klonování stránky zvolte možnost 1) a zadejte URL adresu stránky, kterou si přejete kopírovat. 
 Například pro stránku https://www.vut.cz/login bude vstup jen:
 
 ```
 https://www.vut.cz/login
 ```
+### Klonovat stránku s vložením cookies
 
 Pro klonování stránky s vložením cookies zvolte možnost 2), zadejte URL adresu požadované stránky stejně jako v možnosti 1) a poté zadejte hodnoty cookie name a cookie value.
 Příklad pro vložení cookie "vut_ack" s hodnotou "l6vcr7kaXJWMixnieoFqgIofh4Iqmi":
